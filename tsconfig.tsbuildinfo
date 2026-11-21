@@ -1,1 +1,0 @@
-{"root":["./src/App.tsx","./src/alerts.ts","./src/db.ts","./src/main.tsx","./src/seed.ts","./src/vite-env.d.ts","./src/components/EntityList.tsx","./src/components/ui.tsx","./src/screens/About.tsx","./src/screens/Gardens.tsx","./src/screens/Home.tsx","./src/screens/Plants.tsx","./src/screens/Sensors.tsx","./src/screens/Species.tsx","./src/screens/Water.tsx"],"version":"5.9.3"}
