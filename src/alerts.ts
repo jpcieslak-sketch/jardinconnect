@@ -1,5 +1,6 @@
 import { db, daysSince, addDays, today, type Plant } from "./db";
 import { rainForecastDays, rainLastDays } from "./weather";
+import { plantsForNeed, surfaceFor, conflictsInParcel } from "./permaculture";
 
 export interface Alert {
   key: string;
@@ -10,7 +11,7 @@ export interface Alert {
 
 export async function computeAlerts(): Promise<Alert[]> {
   const alerts: Alert[] = [];
-  const [plantsAll, speciesAll, waterAssets, treatments, weather, zones, sensorsAll, readingsAll] = await Promise.all([
+  const [plantsAll, speciesAll, waterAssets, treatments, weather, zones, sensorsAll, readingsAll, needsAll] = await Promise.all([
     db.plants.toArray(),
     db.plant_species.toArray(),
     db.water_assets.toArray(),
@@ -19,6 +20,7 @@ export async function computeAlerts(): Promise<Alert[]> {
     db.garden_zones.toArray(),
     db.sensors.toArray(),
     db.sensor_readings.toArray(),
+    db.harvest_needs.toArray(),
   ]);
 
   const speciesById = new Map(speciesAll.map((s) => [s.id!, s]));
@@ -149,6 +151,49 @@ export async function computeAlerts(): Promise<Alert[]> {
       detail: "Pensez à arroser : vérifiez le paillage et arrosez en profondeur, au pied des plantes, de préférence le soir.",
     });
   }
+
+  const activeByZone = new Map<number, Plant[]>();
+  for (const p of activePlants) {
+    if (!activeByZone.has(p.zoneId)) activeByZone.set(p.zoneId, []);
+    activeByZone.get(p.zoneId)!.push(p);
+  }
+  for (const [zoneId, zonePlants] of activeByZone) {
+    const zoneSpecies = zonePlants
+      .map((p) => speciesById.get(p.speciesId))
+      .filter((s): s is NonNullable<typeof s> => Boolean(s));
+    const conflicts = conflictsInParcel(zoneSpecies, []);
+    if (conflicts.length > 0) {
+      const zone = zoneById.get(zoneId);
+      alerts.push({
+        key: `compat-zone-${zoneId}`,
+        severity: "attention",
+        title: `Compatibilité à revoir dans « ${zone?.name ?? "parcelle"} »`,
+        detail: `${conflicts.join(", ")} : ces plantes se gênent (maladies communes, exsudats toxiques). Déplacez-les dans des parcelles séparées ou espacez-les au maximum.`,
+      });
+    }
+  }
+
+  let needsSurface = 0;
+  for (const need of needsAll) {
+    const sp = speciesById.get(need.speciesId);
+    if (!sp) continue;
+    const count = plantsForNeed(sp, need);
+    const area = count !== null ? surfaceFor(sp, count) : null;
+    if (area !== null) needsSurface += area;
+  }
+  const potagerSurface = zones
+    .filter((z) => z.type === "potager" || z.type === "serre")
+    .reduce((acc, z) => acc + (z.surfaceM2 ?? 0), 0);
+  if (potagerSurface > 0 && needsSurface > potagerSurface) {
+    alerts.push({
+      key: "surface-exceeded",
+      severity: "attention",
+      title: "Vos besoins dépassent la surface déclarée",
+      detail: `Vos objectifs de récolte coûtent ~${Math.round(needsSurface)} m² alors que vos parcelles font ${Math.round(potagerSurface)} m². Réduisez certains besoins, agrandissez une parcelle ou installez en contenants.`,
+    });
+  }
+
+
 
   return alerts;
 }

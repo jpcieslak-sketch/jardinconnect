@@ -94,7 +94,7 @@ export function SpeciesScreen() {
                       : s.underCoverMonths.map((m) => <span key={m} className="chip chip-blue">{FRENCH_MONTHS[m - 1]}</span>)}
                   </p>
                   <p>
-                    <span className="chip-label">Semis en plein terre :</span>
+                    <span className="chip-label">Semis en pleine terre :</span>
                     {s.sowingMonths.length === 0
                       ? <span className="muted"> par repiquage uniquement</span>
                       : s.sowingMonths.map((m) => <span key={m} className="chip">{FRENCH_MONTHS[m - 1]}</span>)}
