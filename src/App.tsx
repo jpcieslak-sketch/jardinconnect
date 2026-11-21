@@ -1,7 +1,5 @@
 import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "./db";
-import { seedIfNeeded } from "./seed";
 import { computeAlerts } from "./alerts";
 import { Home } from "./screens/Home";
 import { GardensScreen } from "./screens/Gardens";
@@ -23,11 +21,6 @@ const TABS = [
 
 export default function App() {
   const [tab, setTab] = useState("home");
-
-  useLiveQuery(async () => {
-    await seedIfNeeded();
-    return db.plant_species.count();
-  }, []);
 
   const alertCount = useLiveQuery(
     async () => (await computeAlerts()).length,
