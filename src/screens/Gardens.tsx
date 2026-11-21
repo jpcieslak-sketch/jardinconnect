@@ -47,9 +47,18 @@ export function GardensScreen() {
         fields={[
           { name: "name", label: "Nom du jardin", type: "text", required: true },
           { name: "location", label: "Localisation", type: "text", placeholder: "ex. Toulouse" },
-          { name: "latitude", label: "Latitude", type: "number", step: 0.0001 },
-          { name: "longitude", label: "Longitude", type: "number", step: 0.0001 },
-          { name: "surfaceM2", label: "Surface (m²)", type: "number", step: 0.1 },
+          {
+            name: "latitude", label: "Latitude", type: "number", step: 0.0001,
+            help: "Indispensable pour la météo réelle. Comment l'obtenir : ouvrez Google Maps, appuyez longuement (ou clic droit) sur votre jardin — un petit menu montre deux nombres comme 43,6047 ; 1,4442. Le premier est la latitude, le second la longitude. Tapez-les ici avec un point (43.6047).",
+          },
+          {
+            name: "longitude", label: "Longitude", type: "number", step: 0.0001,
+            help: "Indispensable pour la météo réelle. C'est le deuxième nombre donné par Google Maps (ex. 1.4442 pour Toulouse, négatif à l'ouest de Greenwich, ex. -1.55 pour Nantes).",
+          },
+          {
+            name: "surfaceM2", label: "Surface (m²)", type: "number", step: 0.1,
+            help: "Surface totale du jardin. Une longueur × largeur : par exemple 10 m × 4 m = 40 m². L'appli l'utilise pour dire combien de plants vous pouvez accueillir.",
+          },
           { name: "notes", label: "Notes", type: "textarea" },
         ]}
         defaultValues={{ createdAt: new Date().toISOString() }}
@@ -65,8 +74,8 @@ export function GardensScreen() {
           { name: "gardenId", label: "Jardin", type: "select", required: true, options: gardenOpts },
           { name: "name", label: "Nom de la parcelle", type: "text", required: true },
           { name: "type", label: "Type", type: "select", required: true, options: typeOpts },
-          { name: "surfaceM2", label: "Surface (m²)", type: "number", step: 0.1 },
-          { name: "sunExposure", label: "Exposition", type: "select", options: sunOpts },
+          { name: "surfaceM2", label: "Surface (m²)", type: "number", step: 0.1, help: "Longueur × largeur de la parcelle (ex. 4 m × 1,2 m = 4,8 m²). Comparée à la place nécessaire de vos besoins de récolte dans l'Assistant." },
+          { name: "sunExposure", label: "Exposition", type: "select", options: sunOpts, help: "Plein soleil : + de 6 h de soleil direct par jour. Mi-ombre : 3 à 6 h. Ombre : moins de 3 h. Observez la parcelle une journée entière avant de répondre." },
           { name: "notes", label: "Notes", type: "textarea" },
         ]}
       />
@@ -81,9 +90,15 @@ export function GardensScreen() {
           { name: "gardenId", label: "Jardin", type: "select", required: true, options: gardenOpts },
           { name: "name", label: "Nom du profil", type: "text", required: true },
           { name: "texture", label: "Texture", type: "select", required: true, options: textureOpts },
-          { name: "ph", label: "pH", type: "number", step: 0.1, hint: "Entre 0 et 14 (7 = neutre)" },
-          { name: "drainage", label: "Drainage", type: "select", options: drainageOpts },
-          { name: "organicMatterPct", label: "Matière organique (%)", type: "number", step: 0.1 },
+          {
+            name: "ph", label: "pH", type: "number", step: 0.1, hint: "Entre 0 et 14 (7 = neutre)",
+            help: "Mesure l'acidité du sol : 7 = neutre, en dessous = acide, au-dessus = calcaire. Un potager aime un pH entre 6 et 7,5. Mesure : kits pH vendus en jardinerie ou analyse de laboratoire (ex. analyses de terre en ligne, 20-30 €). Pas de valeur ? Laissez vide, ce n'est pas bloquant.",
+          },
+          { name: "drainage", label: "Drainage", type: "select", options: drainageOpts, help: "À quelle vitesse l'eau s'écoule ? Test simple : creusez un trou de 30 cm, remplissez-le d'eau. Vide en moins de 4 h = bon. Encore plein le lendemain = mauvais." },
+          {
+            name: "organicMatterPct", label: "Matière organique (%)", type: "number", step: 0.1,
+            help: "La part de matière vivante (compost, humus) dans votre sol, donnée par une analyse de terre. Repère : 2 à 3 % est courant, plus de 5 % est excellent. En dessous de 2 %, apportez du compost. Pas d'analyse ? Laissez vide.",
+          },
           { name: "lastAnalysisDate", label: "Dernière analyse", type: "date" },
           { name: "notes", label: "Notes", type: "textarea" },
         ]}

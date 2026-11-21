@@ -44,8 +44,8 @@ export function WaterScreen() {
           { name: "gardenId", label: "Jardin", type: "select", required: true, options: gardenOpts },
           { name: "name", label: "Nom", type: "text", required: true, placeholder: "ex. Citerne nord" },
           { name: "type", label: "Type", type: "select", required: true, options: typeOpts },
-          { name: "capacityL", label: "Capacité (L)", type: "number", step: 1 },
-          { name: "currentLevelL", label: "Niveau actuel (L)", type: "number", step: 1 },
+          { name: "capacityL", label: "Capacité (L)", type: "number", step: 1, help: "Le volume total que peut contenir la réserve (écrit dessus : « 1 000 L », « m³ » = ×1000). Une cuve IBC standard = 1 000 L, une cuve murale classique = 200 à 400 L." },
+          { name: "currentLevelL", label: "Niveau actuel (L)", type: "number", step: 1, help: "Ce qui reste aujourd'hui. Intérêt : l'appli vous alerte quand la cuve est presque vide, surtout si aucune pluie n'est prévue — vous pouvez ainsi décider de la configuration : prioriser quelles plantes arroser, demander un ajout d'eau…" },
           { name: "notes", label: "Notes", type: "textarea" },
         ]}
       />

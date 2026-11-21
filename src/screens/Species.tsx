@@ -8,8 +8,13 @@ const CATEGORY_ICONS: Record<PlantSpecies["category"], string> = {
   aromate: "🌿",
   fruit: "🍎",
   fleur: "🌸",
+  "engrais vert": "🌱",
   arbuste: "🌳",
 };
+
+function monthsLabel(months: number[]): string {
+  return months.length === 0 ? "—" : months.map((m) => FRENCH_MONTHS[m - 1]).join(", ");
+}
 
 export function SpeciesScreen() {
   const species = useLiveQuery(() => db.plant_species.toArray());
@@ -20,16 +25,23 @@ export function SpeciesScreen() {
   const filtered = useMemo(() => {
     return (species ?? []).filter((s) => {
       const q = search.toLowerCase();
-      const matchSearch = !q || s.commonName.toLowerCase().includes(q) || s.latinName.toLowerCase().includes(q);
+      const matchSearch =
+        !q ||
+        s.commonName.toLowerCase().includes(q) ||
+        s.latinName.toLowerCase().includes(q) ||
+        s.family.toLowerCase().includes(q);
       const matchCat = !category || s.category === category;
-      const matchMonth = !month || s.sowingMonths.includes(Number(month));
+      const matchMonth =
+        !month ||
+        s.sowingMonths.includes(Number(month)) ||
+        s.underCoverMonths.includes(Number(month));
       return matchSearch && matchCat && matchMonth;
     });
   }, [species, search, category, month]);
 
   return (
     <div>
-      <SectionTitle>📖 Référentiel botanique</SectionTitle>
+      <SectionTitle>📖 Référentiel botanique ({(species ?? []).length} espèces)</SectionTitle>
       <Card>
         <div className="filters">
           <input
@@ -45,12 +57,16 @@ export function SpeciesScreen() {
             ))}
           </select>
           <select value={month} onChange={(e) => setMonth(e.target.value)}>
-            <option value="">Semis : tout l'année</option>
+            <option value="">Semis : toute l'année</option>
             {FRENCH_MONTHS.map((m, i) => (
               <option key={m} value={String(i + 1)}>{m}</option>
             ))}
           </select>
         </div>
+      </Card>
+
+      <Card>
+        <p className="muted chip-label">🌱 Engrais verts : semez-les sur les parcelles vides pour enrichir le sol (rotation, jachère). Ils sont intégrés au planning de l'Assistant.</p>
       </Card>
 
       {filtered.length === 0 ? (
@@ -62,20 +78,36 @@ export function SpeciesScreen() {
               <details>
                 <summary>
                   <span>{CATEGORY_ICONS[s.category]} <strong>{s.commonName}</strong></span>
-                  <span className="muted latin">{s.latinName}</span>
+                  <span className="muted latin">{s.latinName} · {s.family}</span>
                 </summary>
                 <div className="species-detail">
                   <p className="muted">
                     ☀️ {s.sun} · 💧 environ {s.waterNeedMmPerWeek} mm/semaine
+                    {s.spacingCm ? ` · ≈ ${s.spacingCm} cm entre pieds` : ""}
+                    {s.yieldPerPlantKg ? ` · 🧺 ≈ ${s.yieldPerPlantKg} kg par pied` : ""}
                     {s.frostSensitive ? " · ❄️ sensible au gel" : " · résiste au gel"}
                   </p>
                   <p>
-                    <span className="chip-label">Semis :</span>
-                    {s.sowingMonths.map((m) => <span key={m} className="chip">{FRENCH_MONTHS[m - 1]}</span>)}
+                    <span className="chip-label">Semis sous abri :</span>
+                    {s.underCoverMonths.length === 0
+                      ? <span className="muted"> non nécessaire</span>
+                      : s.underCoverMonths.map((m) => <span key={m} className="chip chip-blue">{FRENCH_MONTHS[m - 1]}</span>)}
                   </p>
                   <p>
+                    <span className="chip-label">Semis en plein terre :</span>
+                    {s.sowingMonths.length === 0
+                      ? <span className="muted"> par repiquage uniquement</span>
+                      : s.sowingMonths.map((m) => <span key={m} className="chip">{FRENCH_MONTHS[m - 1]}</span>)}
+                  </p>
+                  {s.transplantMonths.length > 0 && (
+                    <p>
+                      <span className="chip-label">Repiquage :</span>
+                      {s.transplantMonths.map((m) => <span key={m} className="chip chip-orange">{FRENCH_MONTHS[m - 1]}</span>)}
+                    </p>
+                  )}
+                  <p>
                     <span className="chip-label">Récolte :</span>
-                    {s.harvestMonths.map((m) => <span key={m} className="chip chip-green">{FRENCH_MONTHS[m - 1]}</span>)}
+                    <span className="muted"> {monthsLabel(s.harvestMonths)}</span>
                   </p>
                   {s.companionGood.length > 0 && (
                     <p><span className="chip-label">♥ S'associe bien avec :</span> <span className="muted">{s.companionGood.join(", ")}</span></p>

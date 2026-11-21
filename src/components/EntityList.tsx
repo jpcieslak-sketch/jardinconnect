@@ -18,6 +18,7 @@ export interface FieldDef {
   placeholder?: string;
   step?: number;
   hint?: string;
+  help?: string;
 }
 
 type Row = Record<string, unknown>;
@@ -117,7 +118,7 @@ export function EntityForm({
     <Modal title={isNew ? "Nouvel élément" : "Modifier"} onClose={onClose}>
       <div className="form">
         {fields.map((f) => (
-          <Field key={f.name} label={f.label + (f.required ? " *" : "")} hint={f.hint}>
+          <Field key={f.name} label={f.label + (f.required ? " *" : "")} hint={f.hint} help={f.help}>
             {f.type === "textarea" ? (
               <textarea
                 value={String(values[f.name] ?? "")}

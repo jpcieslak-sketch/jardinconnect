@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { computeAlerts } from "./alerts";
 import { Home } from "./screens/Home";
+import { AssistantScreen } from "./screens/Assistant";
 import { GardensScreen } from "./screens/Gardens";
 import { PlantsScreen } from "./screens/Plants";
 import { SpeciesScreen } from "./screens/Species";
@@ -11,6 +12,7 @@ import { AboutScreen } from "./screens/About";
 
 const TABS = [
   { id: "home", label: "Accueil", icon: "🏠" },
+  { id: "assistant", label: "Assistant", icon: "🌱" },
   { id: "gardens", label: "Jardins", icon: "🌍" },
   { id: "plants", label: "Plantes", icon: "🌿" },
   { id: "water", label: "Eau", icon: "💧" },
@@ -41,6 +43,7 @@ export default function App() {
 
       <main className="app-main">
         {tab === "home" && <Home onGo={setTab} />}
+        {tab === "assistant" && <AssistantScreen />}
         {tab === "gardens" && <GardensScreen />}
         {tab === "plants" && <PlantsScreen />}
         {tab === "water" && <WaterScreen />}

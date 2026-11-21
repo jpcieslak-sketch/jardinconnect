@@ -33,16 +33,29 @@ export interface SoilProfile {
   notes?: string;
 }
 
+export type SpeciesCategory =
+  | "légume"
+  | "aromate"
+  | "fruit"
+  | "fleur"
+  | "engrais vert"
+  | "arbuste";
+
 export interface PlantSpecies {
   id?: number;
   commonName: string;
   latinName: string;
-  category: "légume" | "aromate" | "fruit" | "fleur" | "arbuste";
+  category: SpeciesCategory;
+  family: string;
   waterNeedMmPerWeek: number;
   sowingMonths: number[];
+  underCoverMonths: number[];
+  transplantMonths: number[];
   harvestMonths: number[];
   sun: "plein soleil" | "mi-ombre" | "ombre";
-  companionGood: string[]; // noms communs d'espèces amies
+  spacingCm?: number;
+  yieldPerPlantKg?: number;
+  companionGood: string[];
   companionBad: string[];
   frostSensitive: boolean;
   cycleDays?: number;
@@ -60,6 +73,14 @@ export interface Plant {
   lastWateredAt?: string;
   wateringIntervalDays?: number;
   notes?: string;
+}
+
+export interface HarvestNeed {
+  id?: number;
+  speciesId: number;
+  targetKgPerYear: number;
+  installedPlantIds?: number[];
+  createdAt: string;
 }
 
 export interface WaterAsset {
@@ -128,7 +149,7 @@ export interface WeatherRecord {
   rainMm: number;
   sunnyHours?: number;
   frost: boolean;
-  source?: string;
+  source: string;
 }
 
 export interface PlantDiagnostic {
@@ -154,7 +175,7 @@ export interface PlantTreatment {
   plantId: number;
   date: string;
   product: string;
-  type: "bio" | "chimique" | "préventif" | "mécanique";
+  type: "bio" | "préventif" | "mécanique";
   dose: string;
   repeatAfterDays?: number;
   nextDueDate?: string;
@@ -187,6 +208,7 @@ export class JardinConnectDB extends Dexie {
   soil_profiles!: Table<SoilProfile, number>;
   plant_species!: Table<PlantSpecies, number>;
   plants!: Table<Plant, number>;
+  harvest_needs!: Table<HarvestNeed, number>;
   water_assets!: Table<WaterAsset, number>;
   water_readings!: Table<WaterReading, number>;
   irrigation_zones!: Table<IrrigationZone, number>;
@@ -202,12 +224,13 @@ export class JardinConnectDB extends Dexie {
 
   constructor() {
     super("jardinconnect");
-    this.version(1).stores({
+    this.version(2).stores({
       gardens: "++id, name",
       garden_zones: "++id, gardenId, name",
       soil_profiles: "++id, gardenId",
-      plant_species: "++id, commonName, category",
+      plant_species: "++id, commonName, category, family",
       plants: "++id, zoneId, speciesId, status",
+      harvest_needs: "++id, speciesId",
       water_assets: "++id, gardenId",
       water_readings: "++id, waterAssetId, date",
       irrigation_zones: "++id, gardenId, zoneId",
@@ -218,7 +241,7 @@ export class JardinConnectDB extends Dexie {
       plant_diagnostics: "++id, plantId, date",
       diagnostic_images: "++id, diagnosticId",
       plant_treatments: "++id, plantId, diagnosticId",
-      alerts: "++id, &key, dismissed",
+      alerts: "++id, &key, date",
       data_sources: "++id, kind",
     });
   }
@@ -239,6 +262,16 @@ export function addDays(dateStr: string, days: number): string {
   const d = new Date(dateStr);
   d.setDate(d.getDate() + days);
   return d.toISOString().slice(0, 10);
+}
+
+export function addMonths(iso: string, n: number): string {
+  const d = new Date(iso);
+  d.setMonth(d.getMonth() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+export function monthOf(iso: string): number {
+  return new Date(iso).getMonth() + 1;
 }
 
 export const FRENCH_MONTHS = [

@@ -42,10 +42,20 @@ export function AboutScreen() {
       <SectionTitle>ℹ️ À propos de JardinConnect</SectionTitle>
       <Card>
         <p>
-          <strong>JardinConnect</strong> est une application de gestion complète du jardin :
-          jardins, parcelles, plantations, réserves d'eau, irrigation, capteurs, météo,
-          diagnostics et traitements des plantes. Tout fonctionne <strong>hors ligne</strong> :
-          vos données restent sur votre appareil, aucun compte n'est requis.
+          <strong>JardinConnect</strong> est un copilote de potager <strong>100 % permaculture</strong> :
+          vous dites ce que vous voulez récolter, l'appli calcule le nombre de pieds, génère un
+          planning mois par mois (semis, repiquage, paillage, engrais verts, repos hivernal) et
+          croise la vraie météo avec vos réserves d'eau et vos parcelles.
+        </p>
+        <p className="muted">
+          🌼 <strong>100 % naturel, en aucun cas chimique :</strong> JardinConnect ne propose que
+          des remèdes naturels et préventifs (purin d'ortie, purin de consoude, savon noir,
+          décoction de prêle, paillage, barrières physiques, compagnonnage). L'option
+          « chimique » n'existe pas dans l'application.
+        </p>
+        <p className="muted">
+          Tout fonctionne <strong>hors ligne</strong> : vos données restent sur votre appareil,
+          aucun compte n'est requis. La météo se met à jour uniquement si vous le demandez.
         </p>
       </Card>
 

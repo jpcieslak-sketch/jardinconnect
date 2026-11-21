@@ -1,4 +1,5 @@
 import { db, daysSince, addDays, today, type Plant } from "./db";
+import { rainForecastDays, rainLastDays } from "./weather";
 
 export interface Alert {
   key: string;
@@ -74,6 +75,14 @@ export async function computeAlerts(): Promise<Alert[]> {
           detail: `${pct} % de la capacité reste dans cette réserve.`,
         });
       }
+      if (pct <= 30 && weather.length > 0 && rainForecastDays(weather, 7) < 5) {
+        alerts.push({
+          key: `tank-dry-spell-${asset.id}`,
+          severity: "urgent",
+          title: `Cuve basse sans pluie prévue : ${asset.name}`,
+          detail: `${pct} % de la capacité reste, et aucune pluie significative n'est prévue dans les 7 prochains jours. Économisez l'eau et maintenez le paillage.`,
+        });
+      }
     }
   }
 
@@ -104,10 +113,10 @@ export async function computeAlerts(): Promise<Alert[]> {
     }
     if ((w.rainMm ?? 0) >= 15) {
       alerts.push({
-        key: `rain-${w.date}`,
-        severity: "info",
-        title: `Fortes précipitations le ${w.date} (${w.rainMm} mm)`,
-        detail: "Reporter les arrosages programmés ce jour-là.",
+        key: `storm-${w.date}`,
+        severity: "attention",
+        title: `Orage ou fortes pluies prévues le ${w.date} (${w.rainMm} mm)`,
+        detail: "Sécurisez les cuves de récupération (couvercles fermés, contre-poids) et reportez vos arrosages ce jour-là.",
       });
     }
   }
@@ -124,16 +133,20 @@ export async function computeAlerts(): Promise<Alert[]> {
     }
   }
 
-  const lastMonth = addDays(today(), -30);
-  const rainSum = readingsAll
-    .filter((r) => r.unit === "mm" && r.date >= lastMonth)
-    .reduce((acc, r) => acc + r.value, 0);
-  if (rainSum === 0 && weather.filter((w) => w.date >= lastMonth).reduce((a, w) => a + (w.rainMm ?? 0), 0) === 0) {
+  const activePlants = plants.filter((p) => p.status === "pousse" || p.status === "mature");
+  const rainSumLast7 =
+    weather.length > 0
+      ? rainLastDays(weather, 7)
+      : (() => {
+          const week = addDays(today(), -7);
+          return readingsAll.filter((r) => r.unit === "mm" && r.date >= week).reduce((acc, r) => acc + r.value, 0);
+        })();
+  if (activePlants.length > 0 && weather.length > 0 && rainSumLast7 < 1) {
     alerts.push({
-      key: "no-rain-30d",
-      severity: "info",
-      title: "Aucune pluie enregistrée depuis 30 jours",
-      detail: "Surveillez les réserves d'eau et le paillage.",
+      key: "no-rain-7d",
+      severity: "attention",
+      title: "Pas de pluie depuis 7 jours",
+      detail: "Pensez à arroser : vérifiez le paillage et arrosez en profondeur, au pied des plantes, de préférence le soir.",
     });
   }
 

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export function Card({
   children,
@@ -38,13 +38,32 @@ export function Button({
 }
 
 export function Field({
-  label, children, hint,
-}: { label: string; children: ReactNode; hint?: string }) {
+  label, children, hint, help,
+}: { label: ReactNode; children: ReactNode; hint?: string; help?: string }) {
+  const [showHelp, setShowHelp] = useState(false);
   return (
     <label className="field">
-      <span className="field-label">{label}</span>
+      <span className="field-label">
+        {label}
+        {help && (
+          <button
+            type="button"
+            className="help-btn"
+            title="Cliquer pour l'aide"
+            aria-label={`Aide : ${typeof label === "string" ? label : "champ"}`}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowHelp(true); }}
+          >
+            ?
+          </button>
+        )}
+      </span>
       {children}
       {hint && <small className="field-hint">{hint}</small>}
+      {showHelp && help && (
+        <Modal title="Comment remplir ce champ ?" onClose={() => setShowHelp(false)}>
+          <p className="help-text">{help}</p>
+        </Modal>
+      )}
     </label>
   );
 }

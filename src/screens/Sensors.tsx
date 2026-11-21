@@ -1,6 +1,9 @@
+import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db";
+import { refreshWeather } from "../weather";
 import { EntityList, refOptions } from "../components/EntityList";
+import { Button, Card } from "../components/ui";
 
 const typeOpts = [
   { value: "humidité sol", label: "Humidité du sol" },
@@ -15,12 +18,57 @@ export function SensorsScreen() {
   const gardens = useLiveQuery(() => db.gardens.toArray());
   const zones = useLiveQuery(() => db.garden_zones.toArray());
   const sensors = useLiveQuery(() => db.sensors.toArray());
+  const weather = useLiveQuery(() => db.weather_records.toArray());
   const gardenOpts = refOptions(gardens);
   const zoneOpts = refOptions(zones);
   const sensorOpts = refOptions(sensors);
+  const [weatherState, setWeatherState] = useState<"idle" | "loading" | "ok" | "error">("idle");
+  const [weatherMsg, setWeatherMsg] = useState("");
+
+  const doRefresh = async () => {
+    setWeatherState("loading");
+    setWeatherMsg("");
+    const result = await refreshWeather();
+    if (result.error) {
+      setWeatherState("error");
+      setWeatherMsg(result.error);
+    } else {
+      setWeatherState("ok");
+      setWeatherMsg(`7 derniers jours + 7 jours de prévisions enregistrés (record : ${result.updated} jours).`);
+    }
+  };
+
+  const gardenWithPosition = (gardens ?? []).find((g) => g.latitude !== undefined && g.longitude !== undefined);
 
   return (
     <div>
+      <Card>
+        <strong>🌤️ Météo réelle du jardin</strong>
+        <p className="muted">
+          Télécharge la météo passée et les prévisions à 7 jours (Open-Meteo, gratuit, sans compte).
+          Le moteur d'alertes l'utilise : arrosage après une période sèche, gel, orages et niveau des cuves.
+        </p>
+        {gardenWithPosition ? (
+          <p className="muted">Position utilisée : {gardenWithPosition.name} (lat {gardenWithPosition.latitude}, lon {gardenWithPosition.longitude})</p>
+        ) : (
+          <p className="muted">
+            Choisissez d'abord un jardin, ouvrez-le, et renseignez ses latitude et longitude.
+            Astuce : dans Google Maps, appuyez longuement sur votre jardin — les coordonnées s'affichent (ex. 43.6047, 1.4442).
+          </p>
+        )}
+        <div className="row-actions">
+          <Button onClick={doRefresh} disabled={weatherState === "loading"}>
+            {weatherState === "loading" ? "Chargement…" : "Actualiser la météo"}
+          </Button>
+          {weather && weather.length > 0 && (
+            <span className="muted">{weather.length} jours enregistrés</span>
+          )}
+        </div>
+        {weatherMsg && (
+          <p className={weatherState === "error" ? "field-hint" : "muted"}>{weatherMsg}</p>
+        )}
+      </Card>
+
       <EntityList
         table={db.sensors}
         title="📡 Capteurs connectés"
@@ -40,7 +88,7 @@ export function SensorsScreen() {
           { name: "type", label: "Type", type: "select", required: true, options: typeOpts },
           { name: "model", label: "Modèle", type: "text" },
           { name: "active", label: "Actif", type: "checkbox" },
-          { name: "lastValue", label: "Dernière valeur", type: "number", step: 0.1, hint: "Pour humidité du sol, en %" },
+          { name: "lastValue", label: "Dernière valeur", type: "number", step: 0.1, hint: "Pour humidité du sol, en %", help: "La dernière mesure lue sur le capteur. Pour un capteur d'humidité du sol : 0-20 % = très sec (il faut arroser), 40-70 % = bon. Sous 20 % l'appli déclenche automatiquement une alerte." },
         ]}
         defaultValues={{ active: true }}
       />

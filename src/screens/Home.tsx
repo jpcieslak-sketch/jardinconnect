@@ -66,6 +66,7 @@ export function Home({ onGo }: { onGo: (tab: string) => void }) {
 
       <SectionTitle>Raccourcis</SectionTitle>
       <div className="stats">
+        <Card className="stat link" onClick={() => onGo("assistant")}><span>🌱</span><span>Assistant</span></Card>
         <Card className="stat link" onClick={() => onGo("plants")}><span>🌿</span><span>Plantes</span></Card>
         <Card className="stat link" onClick={() => onGo("water")}><span>💧</span><span>Eau</span></Card>
         <Card className="stat link" onClick={() => onGo("sensors")}><span>📡</span><span>Capteurs</span></Card>

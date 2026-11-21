@@ -1,8 +1,38 @@
 import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { db, daysSince, today, FRENCH_MONTHS } from "../db";
+import { db, daysSince, today, FRENCH_MONTHS, type PlantSpecies } from "../db";
 import { refOptions } from "../components/EntityList";
 import { Button, Card, EmptyState, Field, Modal, SectionTitle } from "../components/ui";
+
+const NATURAL_REMEDIES: Record<string, string[]> = {
+  maladie: [
+    "Décoction de prêle (10 g/L, bouillir 20 min) contre le mildiou — pulvériser tous les 10 jours",
+    "Bicarbonate de soude (5 g/L) + une cuillère de savon noir contre l'oïdium (poudre blanche)",
+    "Purin d'ortie dilué à 5 % en arrosage pour renforcer les plantes",
+  ],
+  ravageur: [
+    "Savon noir dilué (10 ml/L) contre pucerons, cochenilles et acariens — pulvériser le soir",
+    "Barrières anti-limaces : cendre, coquilles d'œufs concassées, planches à retourner le matin",
+    "Bacillus thuringiensis (bio) contre les chenilles",
+    "Planter des capucines ou œillets d'Inde comme plantes pièges",
+  ],
+  carence: [
+    "Purin de consoude dilué à 10 % (riche en potassium — feuilles jaunes/violettes)",
+    "Purin d'ortie dilué à 5 % (azote — plante pâle qui pousse lentement)",
+    "Compost mûr en surface + paillage pour nourrir le sol durablement",
+  ],
+  "stress hydrique": [
+    "Arroser en profondeur le soir, au pied, 2 jours de suite pour réhydrater",
+    "Pailler épais immédiatement (paille, tontes sèches) pour garder la fraîcheur",
+    "Installer une olla ou du goutte-à-goutte pour un arrosage lent et régulier",
+  ],
+  sain: [
+    "Tout va bien ! Continuez le paillage et un purin d'ortie préventif une fois par mois",
+  ],
+  autre: [
+    "Observez quotidiennement et ajoutez une photo : les détails (taches, dessous des feuilles) aident au diagnostic",
+  ],
+};
 
 export function PlantsScreen() {
   const plants = useLiveQuery(() => db.plants.toArray());
@@ -67,6 +97,7 @@ export function PlantsScreen() {
           row={editing}
           zoneOpts={refOptions(zones)}
           speciesOpts={refOptions(species, "commonName")}
+          speciesList={species ?? []}
           onClose={() => setEditing(null)}
         />
       )}
@@ -87,16 +118,21 @@ export function PlantsScreen() {
 }
 
 function PlantForm({
-  row, zoneOpts, speciesOpts, onClose,
+  row, zoneOpts, speciesOpts, speciesList, onClose,
 }: {
   row: Record<string, unknown>;
   zoneOpts: { value: string; label: string }[];
   speciesOpts: { value: string; label: string }[];
+  speciesList: PlantSpecies[];
   onClose: () => void;
 }) {
   const [values, setValues] = useState<Record<string, unknown>>({ ...row });
   const isNew = row.id === undefined;
   const set = (name: string, v: unknown) => setValues((prev) => ({ ...prev, [name]: v }));
+  const speciesMap = new Map(speciesList.map((s) => [s.id!, s]));
+  const selectedSpecies = (values.speciesId === "" || values.speciesId === undefined)
+    ? undefined
+    : speciesMap.get(Number(values.speciesId));
 
   const submit = async () => {
     if (!values.zoneId || !values.speciesId) return;
@@ -124,10 +160,24 @@ function PlantForm({
             {speciesOpts.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </Field>
+        {selectedSpecies && (selectedSpecies.companionGood.length > 0 || selectedSpecies.companionBad.length > 0) && (
+          <div className="form-note">
+            <p className="chip-label">♥ À installer à côté : bon compagnon</p>
+            {selectedSpecies.companionGood.length > 0 && (
+              <p>{selectedSpecies.companionGood.map((n) => <span key={n} className="chip chip-green">{n}</span>)}</p>
+            )}
+            {selectedSpecies.companionBad.length > 0 && (
+              <p><span className="chip-label">⚠ À éviter à côté :</span></p>
+            )}
+            {selectedSpecies.companionBad.length > 0 && (
+              <p>{selectedSpecies.companionBad.map((n) => <span key={n} className="chip chip-red">{n}</span>)}</p>
+            )}
+          </div>
+        )}
         <Field label="Surnom" hint="ex. « Tomates cerises du mur »">
           <input type="text" value={String(values.nickname ?? "")} onChange={(e) => set("nickname", e.target.value)} />
         </Field>
-        <Field label="Quantité">
+        <Field label="Nombre de pieds" help="Le nombre de plants individuels (ex. 6 = 6 pieds de tomates). En permaculture, on sème souvent en poquets : 2-3 graines par trou puis on garde le plant le plus vigoureux.">
           <input type="number" min={1} value={String(values.quantity ?? 1)} onChange={(e) => set("quantity", e.target.value)} />
         </Field>
         <Field label="Date de plantation">
@@ -144,8 +194,12 @@ function PlantForm({
         <Field label="Dernier arrosage">
           <input type="date" value={String(values.lastWateredAt ?? "")} onChange={(e) => set("lastWateredAt", e.target.value)} />
         </Field>
-        <Field label="Rythme d'arrosage (jours)" hint="Laisser vide pour utiliser le besoin de l'espèce">
-          <input type="number" min={1} value={String(values.wateringIntervalDays ?? "")} onChange={(e) => set("wateringIntervalDays", e.target.value)} />
+        <Field
+          label="Rythme d'arrosage (jours)"
+          help="Ne remplissez pas ce champ : l'appli calcule le bon rythme à partir des besoins en eau de l'espèce et de la météo. Ne le touchez que si vous avez constaté une situation particulière (sol très drainant, pot très exposé…)."
+          hint={selectedSpecies ? `Recommandé pour ${selectedSpecies.commonName} : ${selectedSpecies.waterNeedMmPerWeek} mm/semaine (≈ tous les ${Math.max(1, Math.round(selectedSpecies.waterNeedMmPerWeek / 4))} jours)` : "Laisser vide : l'appli utilise les besoins de l'espèce"}
+        >
+          <input type="number" min={1} value={String(values.wateringIntervalDays ?? "")} onChange={(e) => set("wateringIntervalDays", e.target.value)} placeholder="Auto" />
         </Field>
         <Field label="Notes">
           <textarea value={String(values.notes ?? "")} onChange={(e) => set("notes", e.target.value)} />
@@ -286,6 +340,13 @@ function DiagnosticForm({ plantId, onClose }: { plantId: number; onClose: () => 
             <option value="élevée">Élevée</option>
           </select>
         </Field>
+        <div className="form-note">
+          <p className="chip-label">💡 Solutions naturelles possibles (100 % permaculture) :</p>
+          {(NATURAL_REMEDIES[status] ?? []).map((r, i) => (
+            <p key={i} className="muted ritual">• {r}</p>
+          ))}
+          <p className="field-hint">Aucun produit chimique : JardinConnect ne propose que des remèdes naturels et préventifs.</p>
+        </div>
         <Field label="Description">
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Symptômes observés…" />
         </Field>
@@ -339,12 +400,11 @@ function TreatmentForm({ plantId, onClose }: { plantId: number; onClose: () => v
         <Field label="Produit *">
           <input type="text" value={String(values.product ?? "")} onChange={(e) => set("product", e.target.value)} placeholder="ex. Purin d'ortie" />
         </Field>
-        <Field label="Type">
+        <Field label="Type" help="JardinConnect est une application 100 % naturelle : seuls les remèdes bio, préventifs ou mécaniques sont proposés (purin d'ortie, savon noir, décoction de prêle, paillage, barrières physiques…). Aucun produit chimique n'est accepté en permaculture.">
           <select value={String(values.type ?? "bio")} onChange={(e) => set("type", e.target.value)}>
             <option value="bio">Bio</option>
             <option value="préventif">Préventif</option>
             <option value="mécanique">Mécanique</option>
-            <option value="chimique">Chimique</option>
           </select>
         </Field>
         <Field label="Dose">
