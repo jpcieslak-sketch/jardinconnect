@@ -2,6 +2,11 @@ import type { HarvestNeed, Plant, PlantSpecies } from "./db";
 
 export const DENSITY_FACTOR = 1.5;
 
+export function num(v: unknown): number {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
 export function plantsForKg(sp: PlantSpecies, targetKg: number): number | null {
   if (!sp.yieldPerPlantKg || sp.yieldPerPlantKg <= 0) return null;
   return Math.max(1, Math.ceil(targetKg / sp.yieldPerPlantKg));

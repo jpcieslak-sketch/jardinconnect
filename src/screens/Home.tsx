@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, today } from "../db";
 import { computeAlerts, type Alert } from "../alerts";
-import { plantsForNeed, surfaceFor, weeklyWaterNeedL } from "../permaculture";
+import { plantsForNeed, surfaceFor, weeklyWaterNeedL, num } from "../permaculture";
 import { tipOfTheDay } from "../tips";
 import { refreshWeather } from "../weather";
 import { dailyTasks, type GardenTask } from "../tasks";
@@ -76,10 +76,10 @@ export function Home({ onGo }: { onGo: (tab: string) => void }) {
 
   const gardensCount = gardens?.length ?? 0;
   const potagerZones = zones?.filter((z) => z.type === "potager" || z.type === "serre") ?? [];
-  const terrainSurface = potagerZones.reduce((acc, z) => acc + (z.surfaceM2 ?? 0), 0);
+  const terrainSurface = potagerZones.reduce((acc, z) => acc + num(z.surfaceM2), 0);
 
-  const capacityL = (waters ?? []).reduce((acc, w) => acc + (w.capacityL ?? 0), 0);
-  const levelL = (waters ?? []).reduce((acc, w) => acc + (w.currentLevelL ?? 0), 0);
+  const capacityL = (waters ?? []).reduce((acc, w) => acc + num(w.capacityL), 0);
+  const levelL = (waters ?? []).reduce((acc, w) => acc + num(w.currentLevelL), 0);
   const waterPct = capacityL > 0 ? Math.round((levelL / capacityL) * 100) : null;
 
   const speciesById = new Map((speciesAll ?? []).map((s) => [s.id!, s]));
