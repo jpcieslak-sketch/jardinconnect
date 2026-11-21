@@ -53,7 +53,6 @@ function HarvestNeedsView() {
 
   const [adding, setAdding] = useState(false);
   const [wizard, setWizard] = useState(false);
-  const [installing, setInstalling] = useState<{ need: HarvestNeed; species: PlantSpecies } | null>(null);
   const [openedZone, setOpenedZone] = useState<GardenZone | null>(null);
 
   if (!speciesAll || !needs || !plants || !zones) {
@@ -170,11 +169,9 @@ function HarvestNeedsView() {
                 </p>
                 <p className="muted">
                   Installés : {installed} / {count ?? "?"} pieds{installed >= (count ?? 999) && installed > 0 ? " ✓ objectif couvert" : ""}
+                  {count !== null && installed < count ? " · ouvrez une parcelle (carré) pour installer" : ""}
                 </p>
                 <div className="row-actions">
-                  <Button variant="small" onClick={() => setInstalling({ need, species: sp })}>
-                    🌱 Installer dans une parcelle
-                  </Button>
                   <Button variant="small" onClick={async () => { await db.harvest_needs.delete(need.id!); }}>
                     🗑️
                   </Button>
@@ -235,16 +232,6 @@ function HarvestNeedsView() {
           onClose={() => setOpenedZone(null)}
         />
       )}
-      {installing && (
-        <InstallForm
-          need={installing.need}
-          species={installing.species}
-          zoneOpts={zones
-            .filter((z) => z.type === "potager" || z.type === "serre")
-            .map((z) => ({ value: String(z.id), label: `${z.name}${z.surfaceM2 ? ` (${z.surfaceM2} m²)` : ""}` }))}
-          onClose={() => setInstalling(null)}
-        />
-      )}
     </div>
   );
 }
@@ -259,6 +246,7 @@ function ParcelModal({
   onClose: () => void;
 }) {
   const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [qty, setQty] = useState<Record<number, string>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -285,6 +273,19 @@ function ParcelModal({
       .filter((f): f is string => Boolean(f)),
   )];
 
+  const remainingFor = (n: HarvestNeed) => {
+    const sp = speciesById.get(n.speciesId);
+    const count = sp ? plantsForNeed(sp, n) : null;
+    const installed = (n.installedPlantIds ?? []).length;
+    return count !== null ? Math.max(0, count - installed) : 0;
+  };
+  const chosenFor = (n: HarvestNeed) => {
+    const remaining = remainingFor(n);
+    const parsed = Number(qty[n.id!]);
+    if (!Number.isFinite(parsed) || parsed <= 0) return remaining;
+    return Math.min(remaining, Math.floor(parsed));
+  };
+
   const selectedNeeds = needs.filter((n) => selected.has(n.id!));
   const selectedSpecies = selectedNeeds
     .map((n) => speciesById.get(n.speciesId))
@@ -294,20 +295,23 @@ function ParcelModal({
   const selectedArea = selectedNeeds.reduce((acc, n) => {
     const sp = speciesById.get(n.speciesId);
     if (!sp) return acc;
-    const count = plantsForNeed(sp, n);
-    const installed = (n.installedPlantIds ?? []).length;
-    const remaining = count !== null ? Math.max(0, count - installed) : 0;
-    return acc + (remaining > 0 && surfaceFor(sp, remaining) ? surfaceFor(sp, remaining)! : 0);
+    const chosen = chosenFor(n);
+    return acc + (chosen > 0 ? surfaceFor(sp, chosen) ?? 0 : 0);
   }, 0);
   const afterFree = free - selectedArea;
 
   const toggle = (id: number) => {
+    const willCheck = !selected.has(id);
+    const need = needs.find((n) => n.id === id);
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
+    if (need && willCheck) {
+      setQty((prev) => ({ ...prev, [id]: String(remainingFor(need)) }));
+    }
   };
 
   const install = async () => {
@@ -322,12 +326,12 @@ function ParcelModal({
         if (!sp) continue;
         const count = plantsForNeed(sp, need);
         if (count === null) continue;
-        const remaining = Math.max(0, count - (need.installedPlantIds ?? []).length);
-        if (remaining === 0) continue;
+        const q = chosenFor(need);
+        if (q <= 0) continue;
         const newPlantId = await db.plants.add({
           zoneId: zone.id!,
           speciesId: sp.id!,
-          quantity: remaining,
+          quantity: q,
           plantingDate: today(),
           status: "pousse",
           notes: "Installé via l'assistant de récolte",
@@ -393,8 +397,20 @@ function ParcelModal({
                     ? "rendement inconnu"
                     : covered
                       ? "✓ déjà installé dans vos parcelles"
-                      : `cocher = installer ${remaining} pieds ≈ ${area} m²${area ? " (surface déduite automatiquement)" : ""}`}
+                      : `à installer : ${remaining} pieds ≈ ${area} m²${area ? " (surface déduite automatiquement)" : ""}`}
                 </p>
+                {selected.has(need.id!) && remaining > 0 && (
+                  <div className="wizard-inputs" style={{ marginLeft: 30 }}>
+                    <input
+                      type="number"
+                      min={1}
+                      max={remaining}
+                      value={qty[need.id!] ?? String(remaining)}
+                      onChange={(e) => setQty((prev) => ({ ...prev, [need.id!]: e.target.value }))}
+                    />
+                    <span className="muted">pieds ici, sur {remaining} à installer</span>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -425,7 +441,7 @@ function ParcelModal({
       {selectedNeeds.length > 0 && zone.surfaceM2 && (
         <p className={afterFree < 0 ? "field-hint" : "muted"} style={{ marginTop: 10 }}>
           {afterFree < 0
-            ? `⚠️ Vous dépassez la surface de cette parcelle : ${Math.round(selectedArea)} m² à ajouter pour ${Math.round(free)} m² libres.`
+            ? `⚠️ Cette parcelle ne peut pas tout contenir : ${Math.round(selectedArea)} m² voulus pour ${Math.round(free)} m² libres. Installez une partie ici (réduisez les quantités), le reste pourra être posé dans une autre parcelle ou dans une nouvelle.`
             : `Après installation : ${Math.round(afterFree)} m² encore libres sur ${zone.name}.`}
         </p>
       )}
@@ -623,69 +639,3 @@ function QuickStartForm({ speciesList, onClose }: { speciesList: PlantSpecies[];
   );
 }
 
-function InstallForm({
-  need, species, zoneOpts, onClose,
-}: {
-  need: HarvestNeed;
-  species: PlantSpecies;
-  zoneOpts: { value: string; label: string }[];
-  onClose: () => void;
-}) {
-  const suggested = plantsForNeed(species, need);
-  const [zoneId, setZoneId] = useState("");
-  const [quantity, setQuantity] = useState(String(suggested ?? 1));
-  const [plantingDate, setPlantingDate] = useState(today());
-  const [error, setError] = useState("");
-
-  const submit = async () => {
-    if (!zoneId) {
-      setError("Choisissez une parcelle.");
-      return;
-    }
-    const q = Math.max(1, Math.floor(Number(quantity) || 1));
-    const newPlantId = await db.plants.add({
-      zoneId: Number(zoneId),
-      speciesId: species.id!,
-      quantity: q,
-      plantingDate,
-      status: "pousse",
-      notes: "Installé via l'assistant de récolte",
-    });
-    const installed = [...(need.installedPlantIds ?? []), newPlantId];
-    await db.harvest_needs.update(need.id!, { installedPlantIds: installed });
-    onClose();
-  };
-
-  return (
-    <Modal title={`Installer : ${species.commonName}`} onClose={onClose}>
-      <div className="form">
-        <p className="muted">
-          {'~'}{suggested ?? "?"} pieds conseillés pour atteindre {needLabel(species, need)}
-          {species.spacingCm ? ` (espacement ${species.spacingCm} cm)` : ""}. Vous pouvez ajuster le nombre.
-        </p>
-        <Field label="Parcelle *" help="Où planter ? Choisissez une parcelle de type potager ou serre. Créez-la dans l'onglet Jardins si besoin.">
-          <select value={zoneId} onChange={(e) => setZoneId(e.target.value)}>
-            <option value="">— choisir —</option>
-            {zoneOpts.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-        </Field>
-        <Field label="Nombre de pieds *" help="Le nombre de plants individuels (ex. 6 pieds de tomates). En permaculture on sème en poquets : 2-3 graines par trou, un seul plant retenu.">
-          <input type="number" min={1} value={quantity} onChange={(e) => setQuantity(e.target.value)} />
-        </Field>
-        <Field label="Date de plantation">
-          <input type="date" value={plantingDate} onChange={(e) => setPlantingDate(e.target.value)} />
-        </Field>
-        {quantity && suggested && (
-          <p className="muted">
-            ↳ Surface approximative : {surfaceFor(species, Number(quantity) || 1) ?? "?"} m²
-          </p>
-        )}
-        {error && <p className="field-hint">{error}</p>}
-      </div>
-      <div className="form-actions">
-        <Button variant="ghost" onClick={onClose}>Annuler</Button>
-        <Button onClick={submit}>Installer</Button>
-      </div>
-    </Modal>
-  );
-}

@@ -147,6 +147,18 @@ body {
 
 .chev { color: var(--muted); font-size: 1.2rem; }
 
+.hb-icon {
+  font-size: 1.6rem;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--green-light);
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
 .stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
