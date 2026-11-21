@@ -17,7 +17,7 @@ function areaOf(sp: PlantSpecies | undefined, qty: number): number {
   return sp ? surfaceFor(sp, qty) ?? 0 : 0;
 }
 
-function squareSize(surfaceM2: number): number {
+export function squareSize(surfaceM2: number): number {
   return Math.max(26, Math.min(64, 20 + Math.sqrt(Math.max(1, surfaceM2)) * 3));
 }
 
@@ -236,7 +236,7 @@ function HarvestNeedsView() {
   );
 }
 
-function ParcelModal({
+export function ParcelModal({
   zone, needs, speciesAll, plants, onClose,
 }: {
   zone: GardenZone;

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, daysSince, today, FRENCH_MONTHS, type PlantSpecies } from "../db";
 import { refOptions } from "../components/EntityList";
+import { ParcelModal, squareSize } from "./Assistant";
 import { Button, Card, EmptyState, Field, Modal, SectionTitle } from "../components/ui";
 
 const NATURAL_REMEDIES: Record<string, string[]> = {
@@ -38,12 +39,14 @@ export function PlantsScreen() {
   const plants = useLiveQuery(() => db.plants.toArray());
   const species = useLiveQuery(() => db.plant_species.toArray());
   const zones = useLiveQuery(() => db.garden_zones.toArray());
+  const needs = useLiveQuery(() => db.harvest_needs.toArray());
   const diagnostics = useLiveQuery(() => db.plant_diagnostics.toArray());
   const treatments = useLiveQuery(() => db.plant_treatments.toArray());
   const images = useLiveQuery(() => db.diagnostic_images.toArray());
 
   const [editing, setEditing] = useState<Record<string, unknown> | null>(null);
   const [detailId, setDetailId] = useState<number | null>(null);
+  const [openedZone, setOpenedZone] = useState<number | null>(null);
 
   const speciesById = new Map((species ?? []).map((s) => [s.id!, s]));
   const zoneById = new Map((zones ?? []).map((z) => [z.id!, z]));
@@ -55,15 +58,49 @@ export function PlantsScreen() {
     await db.plants.update(plantId, { lastWateredAt: today() });
   };
 
+  const activePlants = (plants ?? []).filter((p) => p.status === "pousse" || p.status === "mature");
+  const parcelles = (zones ?? []).filter((z) => z.type === "potager" || z.type === "serre");
+  const zoneByIdL = new Map(parcelles.map((z) => [z.id!, z]));
+  const openedZoneObj = openedZone !== null ? zoneByIdL.get(openedZone) ?? null : null;
+
   return (
     <div>
+      <SectionTitle>📐 Mes parcelles : où installer quoi ?</SectionTitle>
+      <Card>
+        <p className="muted">
+          Ouvrez une parcelle (petit carré) : vous retrouvez dessous toutes les récoltes cochées dans
+          Mes objectifs. Cochez ce que vous y mettez — la surface de la parcelle se déduit toute
+          seule, et l'appli vous alerte si deux plantes se gênent (compatibilité, rotation, surface).
+        </p>
+      </Card>
+      {parcelles.length === 0 ? (
+        <EmptyState text="Aucune parcelle potager ou serre. Créez-les dans l'onglet Jardins (avec leur surface)." />
+      ) : (
+        <div className="list">
+          {parcelles.map((z) => {
+            const side = squareSize(z.surfaceM2 ?? 10);
+            return (
+              <Card key={z.id}>
+                <button className="list-row-btn" onClick={() => setOpenedZone(z.id!)}>
+                  <span className="zone-square" style={{ width: side, height: side }} title={z.name} />
+                  <div className="list-text">
+                    <strong>{z.name}</strong>
+                    <span className="muted">{z.surfaceM2 ? `${z.surfaceM2} m²` : "surface ?"}{z.sunExposure ? ` · ${z.sunExposure}` : ""}</span>
+                  </div>
+                  <span className="chev">›</span>
+                </button>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
       <div className="head-row">
         <SectionTitle>🌿 Mes plantations</SectionTitle>
-        <Button onClick={() => setEditing({ quantity: 1, status: "pousse", plantingDate: today() })}>+ Planter</Button>
       </div>
 
       {(plants ?? []).length === 0 ? (
-        <EmptyState text="Aucune plantation. Ajoutez votre première plante !" />
+        <EmptyState text="Aucune plantation : ouvrez une parcelle (carré) ci-dessus pour installer vos récoltes cochées." />
       ) : (
         <div className="list">
           {(plants ?? []).map((p) => {
@@ -99,6 +136,16 @@ export function PlantsScreen() {
           speciesOpts={refOptions(species, "commonName")}
           speciesList={species ?? []}
           onClose={() => setEditing(null)}
+        />
+      )}
+
+      {openedZoneObj && needs && species && (
+        <ParcelModal
+          zone={openedZoneObj}
+          needs={needs}
+          speciesAll={species}
+          plants={activePlants}
+          onClose={() => setOpenedZone(null)}
         />
       )}
 
