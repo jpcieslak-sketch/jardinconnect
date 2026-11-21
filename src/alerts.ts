@@ -11,15 +11,13 @@ export interface Alert {
 
 export async function computeAlerts(): Promise<Alert[]> {
   const alerts: Alert[] = [];
-  const [plantsAll, speciesAll, waterAssets, treatments, weather, zones, sensorsAll, readingsAll, needsAll] = await Promise.all([
+  const [plantsAll, speciesAll, waterAssets, treatments, weather, zones, needsAll] = await Promise.all([
     db.plants.toArray(),
     db.plant_species.toArray(),
     db.water_assets.toArray(),
     db.plant_treatments.toArray(),
     db.weather_records.toArray(),
     db.garden_zones.toArray(),
-    db.sensors.toArray(),
-    db.sensor_readings.toArray(),
     db.harvest_needs.toArray(),
   ]);
 
@@ -123,26 +121,11 @@ export async function computeAlerts(): Promise<Alert[]> {
     }
   }
 
-  for (const sensor of sensorsAll.filter((s) => s.active && s.type === "humidité sol")) {
-    if (sensor.lastValue === undefined) continue;
-    if (sensor.lastValue < 20) {
-      alerts.push({
-        key: `sensor-dry-${sensor.id}`,
-        severity: "urgent",
-        title: `Sol trop sec : ${sensor.name}`,
-        detail: `Mesure ${sensor.lastValue} % d'humidité. Vérifier l'arrosage de la zone.`,
-      });
-    }
-  }
-
   const activePlants = plants.filter((p) => p.status === "pousse" || p.status === "mature");
   const rainSumLast7 =
     weather.length > 0
       ? rainLastDays(weather, 7)
-      : (() => {
-          const week = addDays(today(), -7);
-          return readingsAll.filter((r) => r.unit === "mm" && r.date >= week).reduce((acc, r) => acc + r.value, 0);
-        })();
+      : 0;
   if (activePlants.length > 0 && weather.length > 0 && rainSumLast7 < 1) {
     alerts.push({
       key: "no-rain-7d",

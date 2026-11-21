@@ -3,10 +3,13 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db, today } from "../db";
 import { computeAlerts, type Alert } from "../alerts";
 import { plantsForNeed, surfaceFor } from "../permaculture";
-import { Badge, Card, EmptyState, SectionTitle } from "../components/ui";
+import { refreshWeather } from "../weather";
+import { Badge, Button, Card, EmptyState, SectionTitle } from "../components/ui";
 
 export function Home({ onGo }: { onGo: (tab: string) => void }) {
   const [alerts, setAlerts] = useState<Alert[] | null>(null);
+  const [weatherState, setWeatherState] = useState<"idle" | "loading" | "ok" | "error">("idle");
+  const [weatherMsg, setWeatherMsg] = useState("");
 
   useEffect(() => {
     const run = async () => setAlerts(await computeAlerts());
@@ -15,8 +18,7 @@ export function Home({ onGo }: { onGo: (tab: string) => void }) {
     return () => clearInterval(t);
   }, []);
 
-  const gardens = useLiveQuery(() => db.gardens.toArray());
-  const zones = useLiveQuery(() => db.garden_zones.toArray());
+  const gardens = useLiveQuery(() => db.gardens.toArray());  const zones = useLiveQuery(() => db.garden_zones.toArray());
   const waters = useLiveQuery(() => db.water_assets.toArray());
   const needs = useLiveQuery(() => db.harvest_needs.toArray());
   const speciesAll = useLiveQuery(() => db.plant_species.toArray());
@@ -39,6 +41,21 @@ export function Home({ onGo }: { onGo: (tab: string) => void }) {
     return acc + (count !== null ? surfaceFor(sp, count) ?? 0 : 0);
   }, 0);
   const loading = !gardens || !zones || !waters || !needs || !speciesAll;
+
+  const doRefresh = async () => {
+    setWeatherState("loading");
+    setWeatherMsg("");
+    const result = await refreshWeather();
+    if (result.error) {
+      setWeatherState("error");
+      setWeatherMsg(result.error);
+    } else {
+      setWeatherState("ok");
+      setWeatherMsg(`7 derniers jours + 7 jours de prévisions enregistrés (record : ${result.updated} jours).`);
+    }
+  };
+
+  const gardenWithPosition = (gardens ?? []).find((g) => g.latitude !== undefined && g.longitude !== undefined);
 
   return (
     <div>
@@ -98,6 +115,31 @@ export function Home({ onGo }: { onGo: (tab: string) => void }) {
         </Card>
       </div>
 
+      <Card>
+        <strong>🌼 Météo réelle du jardin</strong>
+        <p className="muted">
+          Télécharge la météo passée et les prévisions à 7 jours (gratuit, sans compte). Les alertes
+          arrosage, gel, orages et cuves s'appuient dessus.
+        </p>
+        {gardenWithPosition ? (
+          <p className="muted">
+            Position : {gardenWithPosition.name} (lat {gardenWithPosition.latitude}, lon {gardenWithPosition.longitude})
+          </p>
+        ) : (
+          <p className="muted">
+            Pour la météo de votre jardin : onglet Jardins → ouvrez votre jardin → renseignez latitude
+            et longitude (astuce : appuyez longuement sur votre jardin dans Google Maps, les coordonnées s'affichent).
+          </p>
+        )}
+        <div className="row-actions">
+          <Button onClick={doRefresh} disabled={weatherState === "loading"}>
+            {weatherState === "loading" ? "Chargement…" : "Actualiser la météo"}
+          </Button>
+          {weatherToday && <span className="muted">aujourd'hui enregistré</span>}
+        </div>
+        {weatherMsg && <p className={weatherState === "error" ? "field-hint" : "muted"}>{weatherMsg}</p>}
+      </Card>
+
       <SectionTitle>Alertes du moment</SectionTitle>
       {alerts === null ? (
         <EmptyState text="Chargement…" />
@@ -124,7 +166,7 @@ export function Home({ onGo }: { onGo: (tab: string) => void }) {
       <SectionTitle>Raccourcis</SectionTitle>
       <div className="stats">
         <Card className="stat link" onClick={() => onGo("plants")}><span>🌿</span><span>Plantes</span></Card>
-        <Card className="stat link" onClick={() => onGo("sensors")}><span>📡</span><span>Capteurs</span></Card>
+        <Card className="stat link" onClick={() => onGo("gardens")}><span>🌍</span><span>Jardins</span></Card>
         <Card className="stat link" onClick={() => onGo("species")}><span>📖</span><span>Espèces</span></Card>
         <Card className="stat link" onClick={() => onGo("about")}><span>ℹ️</span><span>À propos</span></Card>
       </div>

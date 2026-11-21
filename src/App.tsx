@@ -7,7 +7,6 @@ import { GardensScreen } from "./screens/Gardens";
 import { PlantsScreen } from "./screens/Plants";
 import { SpeciesScreen } from "./screens/Species";
 import { WaterScreen } from "./screens/Water";
-import { SensorsScreen } from "./screens/Sensors";
 import { AboutScreen } from "./screens/About";
 
 const TABS = [
@@ -16,7 +15,6 @@ const TABS = [
   { id: "gardens", label: "Jardins", icon: "🌍" },
   { id: "plants", label: "Plantes", icon: "🌿" },
   { id: "water", label: "Eau", icon: "💧" },
-  { id: "sensors", label: "Capteurs", icon: "📡" },
   { id: "species", label: "Espèces", icon: "📖" },
   { id: "about", label: "À propos", icon: "ℹ️" },
 ];
@@ -47,7 +45,6 @@ export default function App() {
         {tab === "gardens" && <GardensScreen />}
         {tab === "plants" && <PlantsScreen />}
         {tab === "water" && <WaterScreen />}
-        {tab === "sensors" && <SensorsScreen />}
         {tab === "species" && <SpeciesScreen />}
         {tab === "about" && <AboutScreen />}
       </main>
