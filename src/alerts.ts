@@ -33,12 +33,14 @@ export async function computeAlerts(): Promise<Alert[]> {
     const zone = zoneById.get(plant.zoneId);
     const where = zone ? zone.name : "parcelle inconnue";
 
+    const sincePlanting = daysSince(plant.plantingDate);
     if (since === null) {
+      if (sincePlanting !== null && sincePlanting < 2) continue;
       alerts.push({
         key: `water-never-${plant.id}`,
         severity: "attention",
-        title: `Premier arrosage non enregistré : ${plant.nickname ?? species.commonName}`,
-        detail: `Aucun arrosage enregistré depuis la plantation (${where}).`,
+        title: `Premier arrosage à faire : ${plant.nickname ?? species.commonName}`,
+        detail: `Installé(e) il y a ${sincePlanting ?? "?"} jour(s) et jamais arrosé(e) (${where}). Arrosez au pied, en profondeur, puis appuyez sur le bouton « J'ai arrosé » ci-dessous.`,
       });
     } else if (since > interval + 2) {
       alerts.push({

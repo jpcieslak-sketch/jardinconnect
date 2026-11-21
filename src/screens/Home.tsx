@@ -121,6 +121,28 @@ export function Home({ onGo }: { onGo: (tab: string) => void }) {
     }
   };
 
+  const markWatered = async (plantId: number) => {
+    await db.plants.update(plantId, { lastWateredAt: today() });
+    setAlerts(await computeAlerts());
+  };
+
+  const remember = (key: string, action: ReminderAction, until: string) => {
+    const s = { ...reminders, [key]: { action, until } };
+    saveReminderState(s);
+    setReminders(s);
+  };
+
+  const visibleTasks = (tasks ?? []).filter((t) => {
+    const r = reminders[t.key];
+    return !r || (r.action === "later" && r.until <= today());
+  });
+  const visibleAlerts = [...(alerts ?? [])]
+    .sort((a, b) => sevRank(b.severity) - sevRank(a.severity))
+    .filter((a) => {
+      const r = reminders[a.key];
+      return !r || (r.action === "later" && r.until <= today());
+    });
+
   const gardenWithPosition = (gardens ?? []).find((g) => g.latitude !== undefined && g.longitude !== undefined);
 
   return (
@@ -206,8 +228,9 @@ export function Home({ onGo }: { onGo: (tab: string) => void }) {
         {weatherMsg && <p className={weatherState === "error" ? "field-hint" : "muted"}>{weatherMsg}</p>}
       </Card>
 
+      <SectionTitle>💡 Le conseil du jour</SectionTitle>
       <Card>
-        <strong>💡 Le conseil du jour : {tip.title}</strong>
+        <strong>{tip.title}</strong>
         <p className="muted">{tip.text}</p>
         <p className="field-hint">Source : {tip.source}</p>
       </Card>
@@ -238,41 +261,70 @@ export function Home({ onGo }: { onGo: (tab: string) => void }) {
         )}
       </Card>
 
+      
       <SectionTitle>✅ À faire au jardin</SectionTitle>
-      {tasks === null ? (
+      {tasks === null || alerts === null ? (
         <EmptyState text="Chargement…" />
-      ) : tasks.length === 0 ? (
-        <EmptyState text="Rien de spécial aujourd'hui 🌱" />
+      ) : visibleTasks.length === 0 && visibleAlerts.length === 0 ? (
+        <EmptyState text="Rien de spécial aujourd'hui 🌱 Tout va bien." />
       ) : (
         <div className="list">
-          {tasks
-            .filter((t) => {
-              const r = reminders[t.key];
-              return !r || (r.action === "later" && r.until <= today());
-            })
-            .map((t) => (
-              <Card key={t.key}>
-                <strong>{t.title}</strong>
-                <p className="muted">{t.detail}</p>
+          {visibleTasks.map((t) => (
+            <Card key={t.key}>
+              <strong>{t.title}</strong>
+              <p className="muted">{t.detail}</p>
+              <div className="row-actions">
+                <Button variant="small" onClick={() => remember(t.key, "done", today())}>
+                  ✓ Fait
+                </Button>
+                <Button variant="small" onClick={() => remember(t.key, "useless", "")}>
+                  ✕ Inutile
+                </Button>
+                <Button variant="small" onClick={() => remember(t.key, "later", addDaysIso(1))}>
+                  ⏰ Dans 1 jour
+                </Button>
+                <Button variant="small" onClick={() => remember(t.key, "later", addDaysIso(7))}>
+                  📅 Dans 1 semaine
+                </Button>
+              </div>
+            </Card>
+          ))}
+          {visibleAlerts.map((a) => {
+            const pid = waterPlantIdOf(a.key);
+            return (
+              <Card key={a.key}>
+                <div className="alert-row">
+                  <div>
+                    <strong>{a.title}</strong>
+                    <p className="muted">{a.detail}</p>
+                  </div>
+                  <Badge severity={a.severity} />
+                </div>
                 <div className="row-actions">
-                  <Button variant="small" onClick={() => { const s = { ...reminders, [t.key]: { action: "done" as ReminderAction, until: today() } }; saveReminderState(s); setReminders(s); }}>
+                  {pid !== null && (
+                    <Button variant="small" onClick={() => void markWatered(pid)}>
+                      💧 J'ai arrosé
+                    </Button>
+                  )}
+                  <Button variant="small" onClick={() => remember(a.key, "done", today())}>
                     ✓ Fait
                   </Button>
-                  <Button variant="small" onClick={() => { const s = { ...reminders, [t.key]: { action: "useless" as ReminderAction, until: "" } }; saveReminderState(s); setReminders(s); }}>
+                  <Button variant="small" onClick={() => remember(a.key, "useless", "")}>
                     ✕ Inutile
                   </Button>
-                  <Button variant="small" onClick={() => { const s = { ...reminders, [t.key]: { action: "later" as ReminderAction, until: addDaysIso(1) } }; saveReminderState(s); setReminders(s); }}>
+                  <Button variant="small" onClick={() => remember(a.key, "later", addDaysIso(1))}>
                     ⏰ Dans 1 jour
                   </Button>
-                  <Button variant="small" onClick={() => { const s = { ...reminders, [t.key]: { action: "later" as ReminderAction, until: addDaysIso(7) } }; saveReminderState(s); setReminders(s); }}>
+                  <Button variant="small" onClick={() => remember(a.key, "later", addDaysIso(7))}>
                     📅 Dans 1 semaine
                   </Button>
                 </div>
               </Card>
-            ))}
+            );
+          })}
         </div>
       )}
-      {typeof Notification !== "undefined" && Notification.permission === "default" && (
+{typeof Notification !== "undefined" && Notification.permission === "default" && (
         <div className="row-actions" style={{ marginBottom: 12 }}>
           <Button
             variant="ghost"
@@ -291,29 +343,6 @@ export function Home({ onGo }: { onGo: (tab: string) => void }) {
         </p>
       )}
 
-      <SectionTitle>Alertes du moment</SectionTitle>
-      {alerts === null ? (
-        <EmptyState text="Chargement…" />
-      ) : alerts.length === 0 ? (
-        <EmptyState text="Aucune alerte, tout va bien ✨" />
-      ) : (
-        <div className="list">
-          {[...alerts]
-            .sort((a, b) => sevRank(b.severity) - sevRank(a.severity))
-            .map((a) => (
-              <Card key={a.key}>
-                <div className="alert-row">
-                  <div>
-                    <strong>{a.title}</strong>
-                    <p className="muted">{a.detail}</p>
-                  </div>
-                  <Badge severity={a.severity} />
-                </div>
-              </Card>
-            ))}
-        </div>
-      )}
-
       <SectionTitle>Raccourcis</SectionTitle>
       <div className="stats">
         <Card className="stat link" onClick={() => onGo("plants")}><span>🌿</span><span>Plantes</span></Card>
@@ -327,4 +356,9 @@ export function Home({ onGo }: { onGo: (tab: string) => void }) {
 
 function sevRank(s: Alert["severity"]): number {
   return s === "urgent" ? 3 : s === "attention" ? 2 : 1;
+}
+
+function waterPlantIdOf(key: string): number | null {
+  const m = key.match(/^water-(?:never|late|soon)-(\d+)$/);
+  return m ? Number(m[1]) : null;
 }
