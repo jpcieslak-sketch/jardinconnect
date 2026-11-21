@@ -4,18 +4,65 @@ import { db, today } from "../db";
 import { computeAlerts, type Alert } from "../alerts";
 import { plantsForNeed, surfaceFor } from "../permaculture";
 import { refreshWeather } from "../weather";
+import { dailyTasks, type GardenTask } from "../tasks";
 import { Badge, Button, Card, EmptyState, SectionTitle } from "../components/ui";
+
+type ReminderAction = "done" | "useless" | "later";
+
+function addDaysIso(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+function reminderState(): Record<string, { action: ReminderAction; until: string }> {
+  try {
+    return JSON.parse(localStorage.getItem("jc-reminders") ?? "{}");
+  } catch {
+    return {};
+  }
+}
+
+function saveReminderState(state: Record<string, { action: ReminderAction; until: string }>) {
+  localStorage.setItem("jc-reminders", JSON.stringify(state));
+}
 
 export function Home({ onGo }: { onGo: (tab: string) => void }) {
   const [alerts, setAlerts] = useState<Alert[] | null>(null);
   const [weatherState, setWeatherState] = useState<"idle" | "loading" | "ok" | "error">("idle");
   const [weatherMsg, setWeatherMsg] = useState("");
+  const [tasks, setTasks] = useState<GardenTask[] | null>(null);
+  const [reminders, setReminders] = useState<Record<string, { action: ReminderAction; until: string }>>(reminderState);
+  const [notifPerm, setNotifPerm] = useState<NotificationPermission | "unsupported">(
+    typeof Notification === "undefined" ? "unsupported" : Notification.permission,
+  );
 
   useEffect(() => {
     const run = async () => setAlerts(await computeAlerts());
     run();
     const t = setInterval(run, 60_000);
     return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    const run = async () => {
+      const list = await dailyTasks();
+      setTasks(list);
+      if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+        const last = localStorage.getItem("jc-notified-date");
+        if (last !== today() && list.length > 0) {
+          try {
+            new Notification("JardinConnect — à faire au jardin", {
+              body: list.slice(0, 3).map((t) => `• ${t.title}`).join("\n"),
+            });
+          } catch {
+            /* notification indisponible : la liste reste visible dans l'app */
+          }
+          localStorage.setItem("jc-notified-date", today());
+        }
+      }
+    };
+    run();
   }, []);
 
   const gardens = useLiveQuery(() => db.gardens.toArray());  const zones = useLiveQuery(() => db.garden_zones.toArray());
@@ -139,6 +186,59 @@ export function Home({ onGo }: { onGo: (tab: string) => void }) {
         </div>
         {weatherMsg && <p className={weatherState === "error" ? "field-hint" : "muted"}>{weatherMsg}</p>}
       </Card>
+
+      <SectionTitle>✅ À faire au jardin</SectionTitle>
+      {tasks === null ? (
+        <EmptyState text="Chargement…" />
+      ) : tasks.length === 0 ? (
+        <EmptyState text="Rien de spécial aujourd'hui 🌱" />
+      ) : (
+        <div className="list">
+          {tasks
+            .filter((t) => {
+              const r = reminders[t.key];
+              return !r || (r.action === "later" && r.until <= today());
+            })
+            .map((t) => (
+              <Card key={t.key}>
+                <strong>{t.title}</strong>
+                <p className="muted">{t.detail}</p>
+                <div className="row-actions">
+                  <Button variant="small" onClick={() => { const s = { ...reminders, [t.key]: { action: "done" as ReminderAction, until: today() } }; saveReminderState(s); setReminders(s); }}>
+                    ✓ Fait
+                  </Button>
+                  <Button variant="small" onClick={() => { const s = { ...reminders, [t.key]: { action: "useless" as ReminderAction, until: "" } }; saveReminderState(s); setReminders(s); }}>
+                    ✕ Inutile
+                  </Button>
+                  <Button variant="small" onClick={() => { const s = { ...reminders, [t.key]: { action: "later" as ReminderAction, until: addDaysIso(1) } }; saveReminderState(s); setReminders(s); }}>
+                    ⏰ Dans 1 jour
+                  </Button>
+                  <Button variant="small" onClick={() => { const s = { ...reminders, [t.key]: { action: "later" as ReminderAction, until: addDaysIso(7) } }; saveReminderState(s); setReminders(s); }}>
+                    📅 Dans 1 semaine
+                  </Button>
+                </div>
+              </Card>
+            ))}
+        </div>
+      )}
+      {typeof Notification !== "undefined" && Notification.permission === "default" && (
+        <div className="row-actions" style={{ marginBottom: 12 }}>
+          <Button
+            variant="ghost"
+            onClick={async () => {
+              const perm = await Notification.requestPermission();
+              setNotifPerm(perm);
+            }}
+          >
+            🔔 Me prévenir chaque jour
+          </Button>
+        </div>
+      )}
+      {notifPerm === "granted" && (
+        <p className="muted" style={{ marginBottom: 12 }}>
+          🔔 Notifications activées : vous serez prévenu une fois par jour des principales tâches.
+        </p>
+      )}
 
       <SectionTitle>Alertes du moment</SectionTitle>
       {alerts === null ? (

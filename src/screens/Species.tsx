@@ -18,9 +18,24 @@ function monthsLabel(months: number[]): string {
 
 export function SpeciesScreen() {
   const species = useLiveQuery(() => db.plant_species.toArray());
+  const gardens = useLiveQuery(() => db.gardens.toArray());
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string>("");
   const [month, setMonth] = useState<string>("");
+
+  const climat = (gardens ?? []).find(
+    (g) => g.climateType !== undefined || g.winterTempMinC !== undefined ||
+      g.summerTempMaxC !== undefined || g.avgRainMmPerYear !== undefined,
+  );
+  const climatFroid = Boolean(
+    climat && (climat.climateType === "montagne" ||
+      (climat.winterTempMinC !== undefined && climat.winterTempMinC <= -5)),
+  );
+  const climatChaudSec = Boolean(
+    climat && (climat.climateType === "méditerranéen" ||
+      (climat.summerTempMaxC !== undefined && climat.summerTempMaxC >= 35) ||
+      (climat.avgRainMmPerYear !== undefined && climat.avgRainMmPerYear < 600)),
+  );
 
   const filtered = useMemo(() => {
     return (species ?? []).filter((s) => {
@@ -66,7 +81,7 @@ export function SpeciesScreen() {
       </Card>
 
       <Card>
-        <p className="muted chip-label">🌱 Engrais verts : semez-les sur les parcelles vides pour enrichir le sol (rotation, jachère). Ils sont intégrés au planning de l'Assistant.</p>
+        <p className="muted chip-label">🌱 Engrais verts : semez-les sur les parcelles vides pour enrichir le sol (rotation, jachère). Ils sont intégrés au planning de l'onglet Paramètres.</p>
       </Card>
 
       {filtered.length === 0 ? (
@@ -81,6 +96,23 @@ export function SpeciesScreen() {
                   <span className="muted latin">{s.latinName} · {s.family}</span>
                 </summary>
                 <div className="species-detail">
+                  {s.category === "engrais vert" && (
+                    <p>
+                      <span className="chip-label">Période d'établissement :</span>
+                      {s.sowingMonths.some((m) => m >= 2 && m <= 6) && (
+                        <span className="chip chip-green" style={{ margin: "0 4px" }}>🌱 Printemps</span>
+                      )}
+                      {s.sowingMonths.some((m) => m >= 8 && m <= 10) && (
+                        <span className="chip chip-orange">🍂 Automne</span>
+                      )}
+                    </p>
+                  )}
+                  {climatFroid && s.frostSensitive && (
+                    <p><span className="chip chip-red">❄️ À protéger l'hiver dans votre climat</span></p>
+                  )}
+                  {climatChaudSec && s.waterNeedMmPerWeek >= 25 && (
+                    <p><span className="chip chip-orange">💧 Gourmande en eau : à déconseiller en été sec (paillage + ombre)</span></p>
+                  )}
                   <p className="muted">
                     ☀️ {s.sun} · 💧 environ {s.waterNeedMmPerWeek} mm/semaine
                     {s.spacingCm ? ` · ≈ ${s.spacingCm} cm entre pieds` : ""}

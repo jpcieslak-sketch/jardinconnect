@@ -245,6 +245,22 @@ export function ParcelModal({
   plants: Plant[];
   onClose: () => void;
 }) {
+  return (
+    <Modal title={`📐 ${zone.name}`} onClose={onClose}>
+      <ParcelInstallPanel zone={zone} needs={needs} speciesAll={speciesAll} plants={plants} />
+    </Modal>
+  );
+}
+
+export function ParcelInstallPanel({
+  zone, needs, speciesAll, plants, onDone,
+}: {
+  zone: GardenZone;
+  needs: HarvestNeed[];
+  speciesAll: PlantSpecies[];
+  plants: Plant[];
+  onDone?: () => void;
+}) {
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [qty, setQty] = useState<Record<number, string>>({});
   const [busy, setBusy] = useState(false);
@@ -340,14 +356,14 @@ export function ParcelModal({
           installedPlantIds: [...(need.installedPlantIds ?? []), newPlantId],
         });
       }
-      onClose();
+      if (onDone) onDone();
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <Modal title={`📐 ${zone.name}`} onClose={onClose}>
+    <div>
       <div className="zone-square zone-square-large" />
       <p className="muted">
         Surface : <strong>{zone.surfaceM2 ?? "?"} m²</strong>
@@ -456,12 +472,12 @@ export function ParcelModal({
       {error && <p className="field-hint">{error}</p>}
 
       <div className="form-actions">
-        <Button variant="ghost" onClick={onClose}>Annuler</Button>
+        <Button variant="ghost" onClick={onDone}>Fermer</Button>
         <Button onClick={install} disabled={busy}>
           {busy ? "Installation…" : `Installer (${selectedNeeds.length})`}
         </Button>
       </div>
-    </Modal>
+    </div>
   );
 }
 

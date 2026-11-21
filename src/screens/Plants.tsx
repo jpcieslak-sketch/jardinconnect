@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, daysSince, today, FRENCH_MONTHS, type PlantSpecies } from "../db";
 import { refOptions } from "../components/EntityList";
-import { ParcelModal, squareSize } from "./Assistant";
+import { ParcelInstallPanel, squareSize } from "./Assistant";
 import { Button, Card, EmptyState, Field, Modal, SectionTitle } from "../components/ui";
 
 const NATURAL_REMEDIES: Record<string, string[]> = {
@@ -60,8 +60,6 @@ export function PlantsScreen() {
 
   const activePlants = (plants ?? []).filter((p) => p.status === "pousse" || p.status === "mature");
   const parcelles = (zones ?? []).filter((z) => z.type === "potager" || z.type === "serre");
-  const zoneByIdL = new Map(parcelles.map((z) => [z.id!, z]));
-  const openedZoneObj = openedZone !== null ? zoneByIdL.get(openedZone) ?? null : null;
 
   return (
     <div>
@@ -79,17 +77,25 @@ export function PlantsScreen() {
         <div className="list">
           {parcelles.map((z) => {
             const side = squareSize(z.surfaceM2 ?? 10);
+            const open = openedZone === z.id;
             return (
-              <Card key={z.id}>
-                <button className="list-row-btn" onClick={() => setOpenedZone(z.id!)}>
-                  <span className="zone-square" style={{ width: side, height: side }} title={z.name} />
-                  <div className="list-text">
-                    <strong>{z.name}</strong>
-                    <span className="muted">{z.surfaceM2 ? `${z.surfaceM2} m²` : "surface ?"}{z.sunExposure ? ` · ${z.sunExposure}` : ""}</span>
-                  </div>
-                  <span className="chev">›</span>
-                </button>
-              </Card>
+              <div key={z.id}>
+                <Card>
+                  <button className="list-row-btn" onClick={() => setOpenedZone(open ? null : z.id!)}>
+                    <span className="zone-square" style={{ width: side, height: side }} title={z.name} />
+                    <div className="list-text">
+                      <strong>{z.name}</strong>
+                      <span className="muted">{z.surfaceM2 ? `${z.surfaceM2} m²` : "surface ?"}{z.sunExposure ? ` · ${z.sunExposure}` : ""}</span>
+                    </div>
+                    <span className="chev">{open ? "⌃" : "›"}</span>
+                  </button>
+                </Card>
+                {open && needs && species && (
+                  <Card>
+                    <ParcelInstallPanel zone={z} needs={needs} speciesAll={species} plants={activePlants} onDone={() => setOpenedZone(null)} />
+                  </Card>
+                )}
+              </div>
             );
           })}
         </div>
@@ -99,7 +105,7 @@ export function PlantsScreen() {
         <SectionTitle>🌿 Mes plantations</SectionTitle>
       </div>
 
-      {(plants ?? []).length === 0 ? (
+      {(plants ?? []).length === 0 && openedZone === null ? (
         <EmptyState text="Aucune plantation : ouvrez une parcelle (carré) ci-dessus pour installer vos récoltes cochées." />
       ) : (
         <div className="list">
@@ -139,15 +145,6 @@ export function PlantsScreen() {
         />
       )}
 
-      {openedZoneObj && needs && species && (
-        <ParcelModal
-          zone={openedZoneObj}
-          needs={needs}
-          speciesAll={species}
-          plants={activePlants}
-          onClose={() => setOpenedZone(null)}
-        />
-      )}
 
       {detailPlant && (
         <Modal title={detailPlant.nickname ?? speciesById.get(detailPlant.speciesId)?.commonName ?? "Détail plante"} onClose={() => setDetailId(null)}>

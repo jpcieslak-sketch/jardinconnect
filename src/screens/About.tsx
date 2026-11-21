@@ -34,6 +34,8 @@ function importData(file: File): void {
   })();
 }
 
+const ACCOMPAGNEMENT_URL = ""; // à compléter avec l'adresse du site de JPC
+
 export function AboutScreen() {
   const sources = useLiveQuery(() => db.data_sources.toArray());
 
@@ -57,6 +59,20 @@ export function AboutScreen() {
           Tout fonctionne <strong>hors ligne</strong> : vos données restent sur votre appareil,
           aucun compte n'est requis. La météo se met à jour uniquement si vous le demandez.
         </p>
+      </Card>
+
+      <SectionTitle>🤝 Se faire accompagner</SectionTitle>
+      <Card>
+        <p className="muted">
+          <strong>Envie d'être guidé par un vrai jardinier ou paysagiste ?</strong> Un accompagnement
+          humain (visite, conseil, conception de votre potager) est proposé par le créateur de
+          JardinConnect.
+        </p>
+        {ACCOMPAGNEMENT_URL ? (
+          <p><a href={ACCOMPAGNEMENT_URL} target="_blank" rel="noreferrer">👉 Découvrir l'accompagnement sur le site du créateur</a></p>
+        ) : (
+          <p className="muted">(Le lien vers le site sera bientôt ajouté ici.)</p>
+        )}
       </Card>
 
       <SectionTitle>🗑️ Sources et licences des données</SectionTitle>

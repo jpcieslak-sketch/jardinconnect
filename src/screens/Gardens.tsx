@@ -59,6 +59,30 @@ export function GardensScreen() {
             name: "surfaceM2", label: "Surface (m²)", type: "number", step: 0.1,
             help: "Surface totale du jardin. Une longueur × largeur : par exemple 10 m × 4 m = 40 m². L'appli l'utilise pour dire combien de plants vous pouvez accueillir.",
           },
+          {
+            name: "climateType", label: "Type de climat (optionnel)", type: "select",
+            options: [
+              { value: "", label: "— ne précise pas —" },
+              { value: "océanique", label: "Océanique (hivers doux, étés tempérés)" },
+              { value: "continental", label: "Continental (hivers froids, étés chauds)" },
+              { value: "méditerranéen", label: "Méditerranéen (étés secs et chauds)" },
+              { value: "montagne", label: "Montagne (gelées fortes et longues)" },
+              { value: "tropical", label: "Tropical / subtropical" },
+            ],
+            help: "Optionnel. Il sert à déconseiller les plantes inadaptées à votre région : montagne = attention aux gelées, méditerranéen = attention aux plantes très gourmandes en eau en été.",
+          },
+          {
+            name: "avgRainMmPerYear", label: "Précipitations moyennes (mm/an, optionnel)", type: "number",
+            help: "Optionnel. Cherchez « précipitations mm par an » + votre ville. Repères : 600 mm = sec, 800-1000 mm = moyen, plus de 1200 mm = humide.",
+          },
+          {
+            name: "summerTempMaxC", label: "Température max estivale (°C, optionnel)", type: "number",
+            help: "Optionnel. Le maximum habituel en plein été (ex. 32). Au-dessus de 35 °C, l'appli vous préviendra pour les plantes qui souffrent en canicule.",
+          },
+          {
+            name: "winterTempMinC", label: "Température min hivernale (°C, optionnel)", type: "number",
+            help: "Optionnel. Le minimum habituel en hiver (ex. -5). L'appli l'utilise pour prévenir quelles plantes gèleront chez vous.",
+          },
           { name: "notes", label: "Notes", type: "textarea" },
         ]}
         defaultValues={{ createdAt: new Date().toISOString() }}
@@ -74,7 +98,7 @@ export function GardensScreen() {
           { name: "gardenId", label: "Jardin", type: "select", required: true, options: gardenOpts },
           { name: "name", label: "Nom de la parcelle", type: "text", required: true },
           { name: "type", label: "Type", type: "select", required: true, options: typeOpts },
-          { name: "surfaceM2", label: "Surface (m²)", type: "number", step: 0.1, help: "Longueur × largeur de la parcelle (ex. 4 m × 1,2 m = 4,8 m²). Comparée à la place nécessaire de vos besoins de récolte dans l'Assistant." },
+          { name: "surfaceM2", label: "Surface (m²)", type: "number", step: 0.1, help: "Longueur × largeur de la parcelle (ex. 4 m × 1,2 m = 4,8 m²). Comparée à la place nécessaire de vos besoins de récolte dans l'onglet Paramètres." },
           { name: "sunExposure", label: "Exposition", type: "select", options: sunOpts, help: "Plein soleil : + de 6 h de soleil direct par jour. Mi-ombre : 3 à 6 h. Ombre : moins de 3 h. Observez la parcelle une journée entière avant de répondre." },
           { name: "notes", label: "Notes", type: "textarea" },
         ]}

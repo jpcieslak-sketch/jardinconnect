@@ -7,6 +7,10 @@ export interface Garden {
   latitude?: number;
   longitude?: number;
   surfaceM2?: number;
+  climateType?: "océanique" | "continental" | "méditerranéen" | "montagne" | "tropical";
+  avgRainMmPerYear?: number;
+  summerTempMaxC?: number;
+  winterTempMinC?: number;
   notes?: string;
   createdAt: string;
 }
