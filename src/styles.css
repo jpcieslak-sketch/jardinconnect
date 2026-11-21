@@ -411,3 +411,34 @@ details summary {
 .form-note p { margin: 3px 0; }
 
 .note-warning { border-left: 4px solid var(--warning); }
+
+/* Liste de coche rapide (assistant, choix des récoltes) */
+.wizard-list {
+  max-height: 50vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.wizard-row {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 8px 0;
+}
+
+.wizard-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.wizard-check input { width: 20px; height: 20px; }
+
+.wizard-inputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.wizard-inputs input[type="number"] { width: 110px; }

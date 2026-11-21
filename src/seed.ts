@@ -33,6 +33,7 @@ export const SEED_SPECIES: PlantSpecies[] = [
     commonName: "Poireau", latinName: "Allium porrum", category: "légume", family: "Alliacées",
     waterNeedMmPerWeek: 20, sowingMonths: [3, 4, 5], underCoverMonths: [2, 3], transplantMonths: [5, 6, 7],
     harvestMonths: [8, 9, 10, 11, 12, 1], sun: "plein soleil", spacingCm: 15, yieldPerPlantKg: 0.3,
+    unitName: "pièce", yieldPerPlantUnits: 1,
     companionGood: ["Carotte", "Céleri", "Fraise"], companionBad: ["Haricot nain", "Haricot à rames"],
     frostSensitive: false, cycleDays: 130,
     careAdvice: "Butter les plants pour blanchir le fût. Surveiller la teigne du poireau en été.",
@@ -42,6 +43,7 @@ export const SEED_SPECIES: PlantSpecies[] = [
     commonName: "Laitue", latinName: "Lactuca sativa", category: "légume", family: "Astéracées",
     waterNeedMmPerWeek: 20, sowingMonths: [3, 4, 5, 6, 8, 9], underCoverMonths: [2, 3], transplantMonths: [4, 5, 6],
     harvestMonths: [4, 5, 6, 7, 8, 9, 10], sun: "mi-ombre", spacingCm: 30, yieldPerPlantKg: 0.3,
+    unitName: "tête", yieldPerPlantUnits: 1,
     companionGood: ["Radis", "Concombre", "Fraise"], companionBad: ["Persil"],
     frostSensitive: false, cycleDays: 60,
     careAdvice: "Arrosages réguliers et légers pour éviter la montaison. Planter en décalé pour étaler les récoltes.",
@@ -69,6 +71,7 @@ export const SEED_SPECIES: PlantSpecies[] = [
     commonName: "Radis", latinName: "Raphanus sativus", category: "légume", family: "Brassicacées",
     waterNeedMmPerWeek: 20, sowingMonths: [3, 4, 5, 6, 8, 9], underCoverMonths: [], transplantMonths: [],
     harvestMonths: [4, 5, 6, 7, 9, 10], sun: "plein soleil", spacingCm: 5, yieldPerPlantKg: 0.03,
+    unitName: "botte", yieldPerPlantUnits: 0.05,
     companionGood: ["Laitue", "Carotte"], companionBad: ["Concombre"],
     frostSensitive: false, cycleDays: 30,
     careAdvice: "Arroser régulièrement : un manque d'eau rend le goût piquant. Semer tous les 15 jours.",
@@ -87,6 +90,7 @@ export const SEED_SPECIES: PlantSpecies[] = [
     commonName: "Épinard", latinName: "Spinacia oleracea", category: "légume", family: "Amaranthacées",
     waterNeedMmPerWeek: 20, sowingMonths: [3, 4, 8, 9, 10], underCoverMonths: [], transplantMonths: [],
     harvestMonths: [4, 5, 10, 11, 12], sun: "mi-ombre", spacingCm: 10, yieldPerPlantKg: 0.2,
+    unitName: "botte", yieldPerPlantUnits: 0.5,
     companionGood: ["Fraise", "Chou"], companionBad: ["Betterave"],
     frostSensitive: false, cycleDays: 50,
     careAdvice: "Aime la fraîcheur : semer en fin d'été pour l'automne-hiver. Couper les feuilles plutôt que la plante entière.",
@@ -240,6 +244,7 @@ export const SEED_SPECIES: PlantSpecies[] = [
     commonName: "Betterave", latinName: "Beta vulgaris", category: "légume", family: "Amaranthacées",
     waterNeedMmPerWeek: 20, sowingMonths: [4, 5, 6], underCoverMonths: [], transplantMonths: [],
     harvestMonths: [7, 8, 9, 10], sun: "plein soleil", spacingCm: 10, yieldPerPlantKg: 0.2,
+    unitName: "pièce", yieldPerPlantUnits: 1,
     companionGood: ["Laitue", "Radis"], companionBad: ["Pomme de terre", "Épinard"],
     frostSensitive: false, cycleDays: 80,
     careAdvice: "Éclaircir les semis à 10 cm. Un sol sableux léger donne de plus belles racines.",
@@ -249,6 +254,7 @@ export const SEED_SPECIES: PlantSpecies[] = [
     commonName: "Blette", latinName: "Beta vulgaris", category: "légume", family: "Amaranthacées",
     waterNeedMmPerWeek: 25, sowingMonths: [4, 5, 6], underCoverMonths: [], transplantMonths: [],
     harvestMonths: [7, 8, 9, 10, 11], sun: "mi-ombre", spacingCm: 30, yieldPerPlantKg: 0.8,
+    unitName: "botte", yieldPerPlantUnits: 2,
     companionGood: ["Haricot vert", "Tomate"], companionBad: ["Betterave"],
     frostSensitive: false, cycleDays: 80,
     careAdvice: "Couper les feuilles au ras du collet au fur et à mesure. Très productive : 2-3 plants suffisent par personne.",
@@ -258,6 +264,7 @@ export const SEED_SPECIES: PlantSpecies[] = [
     commonName: "Chou", latinName: "Brassica oleracea", category: "légume", family: "Brassicacées",
     waterNeedMmPerWeek: 25, sowingMonths: [3, 4, 5], underCoverMonths: [2, 3], transplantMonths: [4, 5, 6, 7],
     harvestMonths: [6, 7, 8, 9, 10, 11], sun: "plein soleil", spacingCm: 50, yieldPerPlantKg: 1.5,
+    unitName: "tête", yieldPerPlantUnits: 1,
     companionGood: ["Haricot vert", "Ail", "Pomme de terre"], companionBad: ["Tomate", "Fraise", "Radis"],
     frostSensitive: false, cycleDays: 180,
     careAdvice: "Poser un filet anti-insectes dès le repiquage contre la piéride. Cendre ou coquilles d'œufs concassées contre les limaces.",
@@ -267,6 +274,7 @@ export const SEED_SPECIES: PlantSpecies[] = [
     commonName: "Chou-fleur", latinName: "Brassica oleracea", category: "légume", family: "Brassicacées",
     waterNeedMmPerWeek: 25, sowingMonths: [], underCoverMonths: [3, 4, 5], transplantMonths: [5, 6, 7],
     harvestMonths: [7, 8, 9, 10], sun: "plein soleil", spacingCm: 60, yieldPerPlantKg: 1,
+    unitName: "tête", yieldPerPlantUnits: 1,
     companionGood: ["Blette", "Ail"], companionBad: ["Tomate", "Fraise"],
     frostSensitive: false, cycleDays: 150,
     careAdvice: "Arroser régulièrement sans excès : le chou-fleur craint la sécheresse. Recouvrir la tête avec ses feuilles pour la blanchir.",
@@ -276,6 +284,7 @@ export const SEED_SPECIES: PlantSpecies[] = [
     commonName: "Brocoli", latinName: "Brassica oleracea", category: "légume", family: "Brassicacées",
     waterNeedMmPerWeek: 25, sowingMonths: [], underCoverMonths: [3, 4, 5, 6], transplantMonths: [5, 6, 7],
     harvestMonths: [7, 8, 9, 10], sun: "plein soleil", spacingCm: 50, yieldPerPlantKg: 0.8,
+    unitName: "tête", yieldPerPlantUnits: 1,
     companionGood: ["Ail", "Blette"], companionBad: ["Tomate", "Fraise"],
     frostSensitive: false, cycleDays: 120,
     careAdvice: "Couper la tête centrale quand les fleurs sont fermées : de nouvelles pousses latérales se forment ensuite.",
@@ -330,6 +339,7 @@ export const SEED_SPECIES: PlantSpecies[] = [
     commonName: "Navet", latinName: "Brassica rapa", category: "légume", family: "Brassicacées",
     waterNeedMmPerWeek: 20, sowingMonths: [3, 4, 7, 8], underCoverMonths: [], transplantMonths: [],
     harvestMonths: [5, 6, 9, 10, 11], sun: "plein soleil", spacingCm: 10, yieldPerPlantKg: 0.15,
+    unitName: "pièce", yieldPerPlantUnits: 1,
     companionGood: ["Laitue", "Radis"], companionBad: ["Pomme de terre"],
     frostSensitive: false, cycleDays: 70,
     careAdvice: "Arrosage régulier : un manque d'eau donne des racines dures et creuses. Éclaircir à 10 cm.",
@@ -357,6 +367,7 @@ export const SEED_SPECIES: PlantSpecies[] = [
     commonName: "Mâche", latinName: "Valerianella locusta", category: "légume", family: "Caprifoliacées",
     waterNeedMmPerWeek: 10, sowingMonths: [8, 9, 10], underCoverMonths: [], transplantMonths: [],
     harvestMonths: [10, 11, 12, 1, 2, 3], sun: "mi-ombre", spacingCm: 8, yieldPerPlantKg: 0.05,
+    unitName: "botte", yieldPerPlantUnits: 0.25,
     companionGood: ["Carotte", "Radis"], companionBad: [],
     frostSensitive: false, cycleDays: 60,
     careAdvice: "Très rustique : couvre le sol tout l'hiver. Semer dans un sol frais, sans enterrer les graines.",
@@ -562,7 +573,10 @@ function normalizeAssociations(list: PlantSpecies[]): PlantSpecies[] {
 
 export async function seedIfNeeded(): Promise<void> {
   const count = await db.plant_species.count();
-  if (count >= SEED_SPECIES.length) return;
+  if (count >= SEED_SPECIES.length) {
+    const incomplete = await db.plant_species.filter((s) => s.unitName === undefined).count();
+    if (incomplete === 0) return;
+  }
   await db.transaction("rw", db.plant_species, db.data_sources, db.plants, async () => {
     if (count > 0) {
       await db.plant_species.clear();

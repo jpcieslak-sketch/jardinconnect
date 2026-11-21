@@ -53,6 +53,8 @@ export interface PlantSpecies {
   transplantMonths: number[];
   harvestMonths: number[];
   sun: "plein soleil" | "mi-ombre" | "ombre";
+  unitName?: string;
+  yieldPerPlantUnits?: number;
   spacingCm?: number;
   yieldPerPlantKg?: number;
   companionGood: string[];
@@ -78,7 +80,8 @@ export interface Plant {
 export interface HarvestNeed {
   id?: number;
   speciesId: number;
-  targetKgPerYear: number;
+  targetKgPerYear?: number;
+  targetUnitsPerYear?: number;
   installedPlantIds?: number[];
   createdAt: string;
 }
