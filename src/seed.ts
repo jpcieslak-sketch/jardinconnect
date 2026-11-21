@@ -571,7 +571,34 @@ function normalizeAssociations(list: PlantSpecies[]): PlantSpecies[] {
   }));
 }
 
+export async function sanitizeNumbers(): Promise<void> {
+  const jobs: { table: typeof db.gardens | typeof db.garden_zones | typeof db.plants | typeof db.harvest_needs | typeof db.water_assets; fields: string[] }[] = [
+    { table: db.gardens, fields: ["latitude", "longitude", "surfaceM2"] },
+    { table: db.garden_zones, fields: ["surfaceM2"] },
+    { table: db.plants, fields: ["quantity"] },
+    { table: db.harvest_needs, fields: ["targetKgPerYear", "targetUnitsPerYear"] },
+    { table: db.water_assets, fields: ["capacityL", "currentLevelL"] },
+  ];
+  for (const { table, fields } of jobs) {
+    const rows = (await table.toArray()) as unknown as Record<string, unknown>[];
+    for (const row of rows) {
+      const patch: Record<string, unknown> = {};
+      let changed = false;
+      for (const f of fields) {
+        const v = row[f];
+        if (typeof v === "string") {
+          const n = Number(v);
+          patch[f] = v.trim() !== "" && Number.isFinite(n) ? n : undefined;
+          changed = true;
+        }
+      }
+      if (changed && row.id !== undefined) await table.update(row.id as number, patch as never);
+    }
+  }
+}
+
 export async function seedIfNeeded(): Promise<void> {
+  await sanitizeNumbers();
   const count = await db.plant_species.count();
   if (count >= SEED_SPECIES.length) {
     const incomplete = await db.plant_species.filter((s) => s.unitName === undefined).count();

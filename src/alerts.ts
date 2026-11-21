@@ -1,6 +1,6 @@
 import { db, daysSince, addDays, today, type Plant } from "./db";
 import { rainForecastDays, rainLastDays } from "./weather";
-import { plantsForNeed, surfaceFor, conflictsInParcel, rotationProblems } from "./permaculture";
+import { plantsForNeed, surfaceFor, conflictsInParcel, rotationProblems, weeklyWaterNeedL } from "./permaculture";
 
 export interface Alert {
   key: string;
@@ -170,6 +170,27 @@ export async function computeAlerts(): Promise<Alert[]> {
         severity: "attention",
         title: `Rotation à respecter dans « ${zone.name} »`,
         detail: `Famille(s) déjà cultivée(s) ici l'an dernier : ${rot.join(", ")}. En permaculture, on ne replante pas la même famille deux années de suite : changez ces plantes de parcelle et variez les familles d'une année sur l'autre.`,
+      });
+    }
+  }
+
+  const totalCapacity = waterAssets.reduce((acc, w) => acc + (w.capacityL ?? 0), 0);
+  const totalLevel = waterAssets.reduce((acc, w) => acc + (w.currentLevelL ?? 0), 0);
+  const waterNeed = weeklyWaterNeedL(plants, speciesById);
+  if (totalCapacity > 0 && waterNeed >= 5) {
+    if (totalLevel < waterNeed) {
+      alerts.push({
+        key: "water-reserves-low",
+        severity: "urgent",
+        title: "Réserves d'eau insuffisantes",
+        detail: `Vos plantations demandent environ ${Math.round(waterNeed)} L par semaine, mais vos réserves ne contiennent que ${Math.round(totalLevel)} L : à peine ${Math.max(0, Math.floor(totalLevel / (waterNeed / 7)))} jour(s) d'arrosage. Récupérez de l'eau de pluie et paillez pour économiser.`,
+      });
+    } else if (totalLevel < waterNeed * 2) {
+      alerts.push({
+        key: "water-reserves-low",
+        severity: "attention",
+        title: "Réserves d'eau à surveiller",
+        detail: `Vos plantations demandent environ ${Math.round(waterNeed)} L par semaine ; vos réserves couvrent environ ${Math.floor(totalLevel / (waterNeed / 7))} jour(s). Mettez le niveau à jour dans l'onglet Eau et paillez.`,
       });
     }
   }

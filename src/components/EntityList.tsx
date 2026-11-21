@@ -106,6 +106,9 @@ export function EntityForm({
     for (const f of fields) {
       if ((f.type === "number") && (clean[f.name] === "" || clean[f.name] === undefined)) {
         delete clean[f.name];
+      } else if (f.type === "number" && typeof clean[f.name] === "string") {
+        const n = Number(clean[f.name]);
+        clean[f.name] = Number.isFinite(n) ? n : undefined;
       }
       if (f.type === "checkbox") clean[f.name] = Boolean(clean[f.name]);
     }

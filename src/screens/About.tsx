@@ -36,6 +36,15 @@ function importData(file: File): void {
 
 const ACCOMPAGNEMENT_URL = ""; // à compléter avec l'adresse du site de JPC
 
+const PLANCHES: { src: string; title: string }[] = [
+  { src: "/planches/plante.jpg", title: "La bonne plante au bon endroit" },
+  { src: "/planches/oiseaux.jpg", title: "Les oiseaux auxiliaires" },
+  { src: "/planches/sol.jpg", title: "Le sol vivant" },
+  { src: "/planches/insectes.jpg", title: "Les insectes et auxiliaires" },
+  { src: "/planches/eau.jpg", title: "L'eau au jardin" },
+  { src: "/planches/jardin.jpg", title: "Le jardin-forêt" },
+];
+
 export function AboutScreen() {
   const sources = useLiveQuery(() => db.data_sources.toArray());
 
@@ -73,6 +82,36 @@ export function AboutScreen() {
         ) : (
           <p className="muted">(Le lien vers le site sera bientôt ajouté ici.)</p>
         )}
+      </Card>
+
+      <SectionTitle>🎨 Les planches de JardinConnect</SectionTitle>
+      <Card>
+        <p className="muted">
+          Ces planches pédagogiques, dessinées pour JardinConnect, résument les bases de la permaculture.
+          Leurs idées nourrissent aussi le conseil du jour de l'accueil.
+        </p>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+            gap: 10,
+          }}
+        >
+          {PLANCHES.map((p) => (
+            <figure key={p.src} style={{ margin: 0 }}>
+              <img
+                src={p.src}
+                alt={`Planche : ${p.title}`}
+                loading="lazy"
+                style={{ width: "100%", height: "auto", borderRadius: 10, border: "1px solid #e3ddcf" }}
+              />
+              <figcaption className="muted" style={{ fontSize: 13, marginTop: 4 }}>
+                {p.title}
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+        <p className="field-hint">Illustrations : Sandra Khoo Crescentini · planches pédagogiques : J.-P. Cieslak</p>
       </Card>
 
       <SectionTitle>🗑️ Sources et licences des données</SectionTitle>

@@ -36,6 +36,21 @@ export function surfaceFor(sp: PlantSpecies, count: number): number | null {
   return Math.round(count * w * w * DENSITY_FACTOR * 10) / 10;
 }
 
+export function weeklyWaterNeedL(
+  plants: Plant[],
+  speciesById: Map<number, PlantSpecies>,
+): number {
+  let need = 0;
+  for (const p of plants) {
+    if (p.status !== "pousse" && p.status !== "mature") continue;
+    const sp = speciesById.get(p.speciesId);
+    if (!sp || !sp.waterNeedMmPerWeek) continue;
+    const area = surfaceFor(sp, p.quantity > 0 ? p.quantity : 1);
+    if (area !== null) need += sp.waterNeedMmPerWeek * area;
+  }
+  return need;
+}
+
 export function areIncompatible(a: PlantSpecies, b: PlantSpecies): boolean {
   if (a.id !== undefined && b.id !== undefined && a.id === b.id) return false;
   return a.companionBad.includes(b.commonName) || b.companionBad.includes(a.commonName);

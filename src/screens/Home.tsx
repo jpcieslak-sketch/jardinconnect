@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, today } from "../db";
 import { computeAlerts, type Alert } from "../alerts";
-import { plantsForNeed, surfaceFor } from "../permaculture";
+import { plantsForNeed, surfaceFor, weeklyWaterNeedL } from "../permaculture";
+import { tipOfTheDay } from "../tips";
 import { refreshWeather } from "../weather";
 import { dailyTasks, type GardenTask } from "../tasks";
 import { Badge, Button, Card, EmptyState, SectionTitle } from "../components/ui";
@@ -28,6 +29,7 @@ function saveReminderState(state: Record<string, { action: ReminderAction; until
 }
 
 export function Home({ onGo }: { onGo: (tab: string) => void }) {
+  const tip = tipOfTheDay();
   const [alerts, setAlerts] = useState<Alert[] | null>(null);
   const [weatherState, setWeatherState] = useState<"idle" | "loading" | "ok" | "error">("idle");
   const [weatherMsg, setWeatherMsg] = useState("");
@@ -53,7 +55,7 @@ export function Home({ onGo }: { onGo: (tab: string) => void }) {
         if (last !== today() && list.length > 0) {
           try {
             new Notification("JardinConnect — à faire au jardin", {
-              body: list.slice(0, 3).map((t) => `• ${t.title}`).join("\n"),
+              body: `💡 ${tip.title}\n${list.slice(0, 3).map((t) => `• ${t.title}`).join("\n")}`,
             });
           } catch {
             /* notification indisponible : la liste reste visible dans l'app */
@@ -68,6 +70,7 @@ export function Home({ onGo }: { onGo: (tab: string) => void }) {
   const gardens = useLiveQuery(() => db.gardens.toArray());  const zones = useLiveQuery(() => db.garden_zones.toArray());
   const waters = useLiveQuery(() => db.water_assets.toArray());
   const needs = useLiveQuery(() => db.harvest_needs.toArray());
+  const plantsQ = useLiveQuery(() => db.plants.toArray());
   const speciesAll = useLiveQuery(() => db.plant_species.toArray());
   const weatherToday = useLiveQuery(() => db.weather_records.where("date").equals(today()).first());
 
@@ -87,7 +90,23 @@ export function Home({ onGo }: { onGo: (tab: string) => void }) {
     const count = plantsForNeed(sp, need);
     return acc + (count !== null ? surfaceFor(sp, count) ?? 0 : 0);
   }, 0);
-  const loading = !gardens || !zones || !waters || !needs || !speciesAll;
+  const activePlantsList = (plantsQ ?? []).filter((p) => p.status === "pousse" || p.status === "mature");
+  const plantedNeedL = weeklyWaterNeedL(activePlantsList, speciesById);
+  const remainingNeedL = (needs ?? []).reduce((acc, need) => {
+    const sp = speciesById.get(need.speciesId);
+    if (!sp) return acc;
+    const count = plantsForNeed(sp, need);
+    if (count === null) return acc;
+    const installed = activePlantsList
+      .filter((p) => p.speciesId === need.speciesId)
+      .reduce((a, p) => a + p.quantity, 0);
+    const remaining = count - installed;
+    if (remaining <= 0) return acc;
+    return acc + (surfaceFor(sp, remaining) ?? 0) * sp.waterNeedMmPerWeek;
+  }, 0);
+  const weeklyNeedL = Math.round(plantedNeedL + remainingNeedL);
+  const daysCover = weeklyNeedL > 0 && capacityL > 0 ? Math.floor(levelL / (weeklyNeedL / 7)) : null;
+  const loading = !gardens || !zones || !waters || !needs || !speciesAll || !plantsQ;
 
   const doRefresh = async () => {
     setWeatherState("loading");
@@ -185,6 +204,38 @@ export function Home({ onGo }: { onGo: (tab: string) => void }) {
           {weatherToday && <span className="muted">aujourd'hui enregistré</span>}
         </div>
         {weatherMsg && <p className={weatherState === "error" ? "field-hint" : "muted"}>{weatherMsg}</p>}
+      </Card>
+
+      <Card>
+        <strong>💡 Le conseil du jour : {tip.title}</strong>
+        <p className="muted">{tip.text}</p>
+        <p className="field-hint">Source : {tip.source}</p>
+      </Card>
+
+      <Card>
+        <strong>💧 Besoin en eau vs vos réserves</strong>
+        {weeklyNeedL < 1 ? (
+          <p className="muted">
+            Aucun besoin d'eau calculé pour l'instant : cochez vos récoltes dans « Mes objectifs », puis installez
+            des plantes dans vos parcelles. L'appli calculera alors leur besoin en eau à la semaine.
+          </p>
+        ) : (
+          <>
+            <p className="muted">
+              Vos plantations (et les objectifs pas encore installés) demandent environ
+              <strong>{weeklyNeedL} litres par semaine</strong>.
+              {capacityL > 0
+                ? ` Vos réserves stockent ${capacityL} L, dont ${levelL} L disponibles : environ ${daysCover ?? 0} jour${(daysCover ?? 0) > 1 ? "s" : ""} d'autonomie sans pluie ni arrosage.`
+                : " Vous n'avez aucune réserve déclarée : pensez à la récupération d'eau de pluie."}
+            </p>
+            {daysCover !== null && daysCover <= 7 && (
+              <p className="field-hint">
+                ⚠️ Peu d'autonomie en eau : remplissez vos cuves en cas de pluie et paillez généreusement pour
+                réduire l'évaporation.
+              </p>
+            )}
+          </>
+        )}
       </Card>
 
       <SectionTitle>✅ À faire au jardin</SectionTitle>

@@ -1,6 +1,7 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db";
 import { EntityList, refOptions } from "../components/EntityList";
+import { Card } from "../components/ui";
 
 const typeOpts = [
   { value: "citerne", label: "Citerne" },
@@ -30,6 +31,24 @@ export function WaterScreen() {
 
   return (
     <div>
+      <Card>
+        <strong>💧 À quoi sert cet onglet ?</strong>
+        <p className="muted">
+          <strong>1️⃣ L'appli calcule vos besoins d'eau :</strong> chaque plante a son besoin (en litres par
+          m² et par semaine), multiplié par la surface qu'elle occupe. Le total s'affiche sur l'accueil,
+          carte « Besoin en eau vs vos réserves ».
+        </p>
+        <p className="muted">
+          <strong>2️⃣ Vous comparez avec vos réserves :</strong> notez ici vos cuves, puits et bassins, et
+          mettez leur niveau à jour de temps en temps. L'appli vous dit combien de jours d'autonomie il
+          reste, vous alerte quand une cuve est presque vide, et encore plus fort si aucune pluie n'est
+          prévue dans la semaine.
+        </p>
+        <p className="muted field-hint">
+          Astuce : une cuve pleine et un sol paillé, c'est une semaine d'arrosage tranquille.
+        </p>
+      </Card>
+
       <EntityList
         table={db.water_assets}
         title="💧 Réserves d'eau (citernes, puits, bassins)"
