@@ -1,4 +1,4 @@
-import type { HarvestNeed, PlantSpecies } from "./db";
+import type { HarvestNeed, Plant, PlantSpecies } from "./db";
 
 export const DENSITY_FACTOR = 1.5;
 
@@ -56,4 +56,39 @@ export function conflictsInParcel(candidates: PlantSpecies[], existing: PlantSpe
     }
   }
   return [...new Set(conflicts)];
+}
+
+export function familiesInYear(
+  zoneId: number,
+  year: number,
+  plants: Plant[],
+  speciesById: Map<number, PlantSpecies>,
+): Set<string> {
+  const families = new Set<string>();
+  for (const p of plants) {
+    if (p.zoneId !== zoneId) continue;
+    if (Number(p.plantingDate.slice(0, 4)) !== year) continue;
+    const sp = speciesById.get(p.speciesId);
+    if (sp?.family) families.add(sp.family);
+  }
+  return families;
+}
+
+export function rotationProblems(
+  zoneId: number,
+  candidates: PlantSpecies[],
+  plants: Plant[],
+  speciesById: Map<number, PlantSpecies>,
+  currentYear: number,
+): string[] {
+  const past = familiesInYear(zoneId, currentYear - 1, plants, speciesById);
+  const seen = new Set<string>();
+  const problems: string[] = [];
+  for (const sp of candidates) {
+    if (sp.family && past.has(sp.family) && !seen.has(sp.family)) {
+      seen.add(sp.family);
+      problems.push(sp.family);
+    }
+  }
+  return problems;
 }

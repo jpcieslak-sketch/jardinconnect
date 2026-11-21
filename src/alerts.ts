@@ -1,6 +1,6 @@
 import { db, daysSince, addDays, today, type Plant } from "./db";
 import { rainForecastDays, rainLastDays } from "./weather";
-import { plantsForNeed, surfaceFor, conflictsInParcel } from "./permaculture";
+import { plantsForNeed, surfaceFor, conflictsInParcel, rotationProblems } from "./permaculture";
 
 export interface Alert {
   key: string;
@@ -169,6 +169,24 @@ export async function computeAlerts(): Promise<Alert[]> {
         severity: "attention",
         title: `Compatibilité à revoir dans « ${zone?.name ?? "parcelle"} »`,
         detail: `${conflicts.join(", ")} : ces plantes se gênent (maladies communes, exsudats toxiques). Déplacez-les dans des parcelles séparées ou espacez-les au maximum.`,
+      });
+    }
+  }
+
+  const year = new Date().getFullYear();
+  for (const zone of zones) {
+    if (!zone.id) continue;
+    const thisYearSpecies = plants
+      .filter((p) => p.zoneId === zone.id && p.plantingDate.startsWith(String(year)))
+      .map((p) => speciesById.get(p.speciesId))
+      .filter((s): s is NonNullable<typeof s> => Boolean(s));
+    const rot = rotationProblems(zone.id, thisYearSpecies, plants, speciesById, year);
+    if (rot.length > 0) {
+      alerts.push({
+        key: `rotation-zone-${zone.id}`,
+        severity: "attention",
+        title: `Rotation à respecter dans « ${zone.name} »`,
+        detail: `Famille(s) déjà cultivée(s) ici l'an dernier : ${rot.join(", ")}. En permaculture, on ne replante pas la même famille deux années de suite : changez ces plantes de parcelle et variez les familles d'une année sur l'autre.`,
       });
     }
   }

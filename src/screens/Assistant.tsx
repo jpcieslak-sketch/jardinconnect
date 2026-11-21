@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, today, type GardenZone, type HarvestNeed, type Plant, type PlantSpecies } from "../db";
 import { PlanningContent } from "./Planning";
-import { plantsForNeed, plantsForKg, plantsForUnits, needLabel, surfaceFor, conflictsInParcel } from "../permaculture";
+import { plantsForNeed, plantsForKg, plantsForUnits, needLabel, surfaceFor, conflictsInParcel, rotationProblems } from "../permaculture";
 import { Button, Card, EmptyState, Field, Modal, SectionTitle } from "../components/ui";
 
 function installableSpecies(list: PlantSpecies[]): PlantSpecies[] {
@@ -271,11 +271,26 @@ function ParcelModal({
     .map((p) => speciesById.get(p.speciesId))
     .filter((s): s is PlantSpecies => Boolean(s));
 
+  const currentYear = new Date().getFullYear();
+  const lastYearNames = [...new Set(
+    plants
+      .filter((p) => p.zoneId === zone.id && p.plantingDate.startsWith(String(currentYear - 1)))
+      .map((p) => speciesById.get(p.speciesId)?.commonName)
+      .filter((n): n is string => Boolean(n)),
+  )];
+  const lastYearFamilies = [...new Set(
+    plants
+      .filter((p) => p.zoneId === zone.id && p.plantingDate.startsWith(String(currentYear - 1)))
+      .map((p) => speciesById.get(p.speciesId)?.family)
+      .filter((f): f is string => Boolean(f)),
+  )];
+
   const selectedNeeds = needs.filter((n) => selected.has(n.id!));
   const selectedSpecies = selectedNeeds
     .map((n) => speciesById.get(n.speciesId))
     .filter((s): s is PlantSpecies => Boolean(s));
   const conflicts = conflictsInParcel(selectedSpecies, zoneSpecies.filter((s) => !selectedSpecies.includes(s)));
+  const rotation = rotationProblems(zone.id!, selectedSpecies, plants, speciesById, currentYear);
   const selectedArea = selectedNeeds.reduce((acc, n) => {
     const sp = speciesById.get(n.speciesId);
     if (!sp) return acc;
@@ -345,6 +360,11 @@ function ParcelModal({
           Déjà ici : {zoneSpecies.map((s) => `${s.commonName} (×${zonePlants.filter((p) => p.speciesId === s.id).reduce((a, p) => a + p.quantity, 0)})`).join(", ")}
         </p>
       )}
+      {lastYearNames.length > 0 && (
+        <p className="muted">
+          🕘 Ici l'an dernier : {lastYearNames.join(", ")}{lastYearFamilies.length > 0 ? ` (famille${lastYearFamilies.length > 1 ? "s" : ""} : ${lastYearFamilies.join(", ")})` : ""} — le mieux est de changer de famille cette année.
+        </p>
+      )}
 
       <div className="head-row">
         <SectionTitle>Qu'y installer ?</SectionTitle>
@@ -388,6 +408,17 @@ function ParcelModal({
           </p>
           {conflicts.map((c, i) => <p key={i} className="muted">• {c}</p>)}
           <p className="muted">Ces plantes se gênent (maladies communes, exsudats) : déplacez-les dans des parcelles séparées ou espacez-les au maximum.</p>
+        </div>
+      )}
+
+      {rotation.length > 0 && (
+        <div className="note-alert" style={{ marginTop: 10 }}>
+          <p>
+            <strong>⚠️ Attention, problème au niveau de la rotation :</strong>
+          </p>
+          <p className="muted">
+            La famille {rotation.join(", ")} a déjà été cultivée dans {zone.name} l'an dernier. En permaculture, on ne replante pas la même famille deux années de suite : changez ces plantes de parcelle.
+          </p>
         </div>
       )}
 
