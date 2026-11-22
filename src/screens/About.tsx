@@ -34,7 +34,7 @@ function importData(file: File): void {
   })();
 }
 
-const ACCOMPAGNEMENT_URL = ""; // à compléter avec l'adresse du site de JPC
+const ACCOMPAGNEMENT_URL = "https://jean-philippe-cieslak.com/";
 
 const PLANCHES: { src: string; title: string }[] = [
   { src: "/planches/plante.jpg", title: "La bonne plante au bon endroit" },
@@ -75,7 +75,7 @@ export function AboutScreen() {
         <p className="muted">
           <strong>Envie d'être guidé par un vrai jardinier ou paysagiste ?</strong> Un accompagnement
           humain (visite, conseil, conception de votre potager) est proposé par le créateur de
-          JardinConnect.
+          JardinConnect, jardinier-paysagiste en aménagement écologique et participatif.
         </p>
         {ACCOMPAGNEMENT_URL ? (
           <p><a href={ACCOMPAGNEMENT_URL} target="_blank" rel="noreferrer">👉 Découvrir l'accompagnement sur le site du créateur</a></p>

@@ -11,7 +11,7 @@ import { AboutScreen } from "./screens/About";
 
 const TABS = [
   { id: "home", label: "Accueil", icon: "🏠" },
-  { id: "assistant", label: "Paramètres", icon: "⚙️" },
+  { id: "assistant", label: "Objectifs", icon: "🎯" },
   { id: "gardens", label: "Jardins", icon: "🌍" },
   { id: "plants", label: "Planter", icon: "🌱" },
   { id: "water", label: "Eau", icon: "💧" },

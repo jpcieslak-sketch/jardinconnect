@@ -81,7 +81,7 @@ export function SpeciesScreen() {
       </Card>
 
       <Card>
-        <p className="muted chip-label">🌱 Engrais verts : semez-les sur les parcelles vides pour enrichir le sol (rotation, jachère). Ils sont intégrés au planning de l'onglet Paramètres.</p>
+        <p className="muted chip-label">🌱 Engrais verts : semez-les sur les parcelles vides pour enrichir le sol (rotation, jachère). Ils sont intégrés au planning de l'onglet Objectifs.</p>
       </Card>
 
       {filtered.length === 0 ? (

@@ -98,7 +98,7 @@ export function GardensScreen() {
           { name: "gardenId", label: "Jardin", type: "select", required: true, options: gardenOpts },
           { name: "name", label: "Nom de la parcelle", type: "text", required: true },
           { name: "type", label: "Type", type: "select", required: true, options: typeOpts },
-          { name: "surfaceM2", label: "Surface (m²)", type: "number", step: 0.1, help: "Longueur × largeur de la parcelle (ex. 4 m × 1,2 m = 4,8 m²). Comparée à la place nécessaire de vos besoins de récolte dans l'onglet Paramètres." },
+          { name: "surfaceM2", label: "Surface (m²)", type: "number", step: 0.1, help: "Longueur × largeur de la parcelle (ex. 4 m × 1,2 m = 4,8 m²). Comparée à la place nécessaire de vos besoins de récolte dans l'onglet Objectifs." },
           { name: "sunExposure", label: "Exposition", type: "select", options: sunOpts, help: "Plein soleil : + de 6 h de soleil direct par jour. Mi-ombre : 3 à 6 h. Ombre : moins de 3 h. Observez la parcelle une journée entière avant de répondre." },
           { name: "notes", label: "Notes", type: "textarea" },
         ]}

@@ -390,7 +390,7 @@ export function ParcelInstallPanel({
         <SectionTitle>Qu'y installer ?</SectionTitle>
       </div>
       {needs.length === 0 ? (
-        <EmptyState text="Aucun besoin déclaré : cochez d'abord vos récoltes (écran précédent)." />
+        <EmptyState text="Aucun besoin déclaré : cochez d'abord vos récoltes en haut de cet onglet (Besoins de récolte)." />
       ) : (
         <div className="form wizard-list">
           {needs.map((need) => {
