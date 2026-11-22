@@ -4,7 +4,7 @@ import { EntityList, refOptions } from "../components/EntityList";
 
 const typeOpts = [
   { value: "potager", label: "Potager" },
-  { value: "serre", label: "Serre" },
+  { value: "serre", label: "Serre / tunnel" },
   { value: "verger", label: "Verger" },
   { value: "massif", label: "Massif" },
   { value: "pelouse", label: "Pelouse" },
@@ -16,6 +16,15 @@ const sunOpts = [
   { value: "mi-ombre", label: "Mi-ombre" },
   { value: "ombre", label: "Ombre" },
 ];
+
+const typeLabels: Record<string, string> = {
+  potager: "Potager",
+  serre: "Serre / tunnel",
+  verger: "Verger",
+  massif: "Massif",
+  pelouse: "Pelouse",
+  autre: "Autre",
+};
 
 const textureOpts = [
   { value: "argileux", label: "Argileux" },
@@ -93,7 +102,7 @@ export function GardensScreen() {
         title="▦ Parcelles et surfaces"
         emptyText="Découpez un jardin en parcelles : potager, serre, verger…"
         toTitle={(z) => z.name}
-        toSubtitle={(z) => `${z.type}${z.surfaceM2 ? ` · ${z.surfaceM2} m²` : ""}${z.sunExposure ? ` · ${z.sunExposure}` : ""}`}
+        toSubtitle={(z) => `${typeLabels[z.type] ?? z.type}${z.surfaceM2 ? ` · ${z.surfaceM2} m²` : ""}${z.sunExposure ? ` · ${z.sunExposure}` : ""}`}
         fields={[
           { name: "gardenId", label: "Jardin", type: "select", required: true, options: gardenOpts },
           { name: "name", label: "Nom de la parcelle", type: "text", required: true },
