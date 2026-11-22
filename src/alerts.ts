@@ -31,7 +31,9 @@ export async function computeAlerts(): Promise<Alert[]> {
     const interval = plant.wateringIntervalDays ?? Math.max(1, Math.round(species.waterNeedMmPerWeek / 4));
     const since = daysSince(plant.lastWateredAt);
     const zone = zoneById.get(plant.zoneId);
-    const where = zone ? zone.name : "parcelle inconnue";
+    const where = zone
+      ? (zone.type === "serre" ? `${zone.name} (sous serre : la pluie n'y entre pas)` : zone.name)
+      : "parcelle inconnue";
 
     const sincePlanting = daysSince(plant.plantingDate);
     if (since === null) {
@@ -135,6 +137,34 @@ export async function computeAlerts(): Promise<Alert[]> {
       title: "Pas de pluie depuis 7 jours",
       detail: "Pensez à arroser : vérifiez le paillage et arrosez en profondeur, au pied des plantes, de préférence le soir.",
     });
+  }
+
+  const serreIds = new Set(zones.filter((z) => z.type === "serre").map((z) => z.id!));
+  const serreActive = activePlants.filter((p) => serreIds.has(p.zoneId));
+  if (serreActive.length > 0) {
+    const dueSerre = serreActive.filter((p) => {
+      const sp = speciesById.get(p.speciesId);
+      if (!sp) return false;
+      const interval = p.wateringIntervalDays ?? Math.max(1, Math.round(sp.waterNeedMmPerWeek / 4));
+      const s = daysSince(p.lastWateredAt);
+      const sp2 = daysSince(p.plantingDate);
+      return s === null ? (sp2 !== null && sp2 >= 2) : s > interval - 1;
+    });
+    if (dueSerre.length > 0) {
+      alerts.push({
+        key: "serre-arrosage-due",
+        severity: "attention",
+        title: "Serre : arrosage à prévoir, même s'il pleut",
+        detail: "Sous serre, la pluie n'entre pas : vos plantes n'attendent que votre arrosage (au pied, de préférence le matin).",
+      });
+    } else {
+      alerts.push({
+        key: "serre-rain-not-counted",
+        severity: "info",
+        title: "Serre : la pluie n'y entre pas",
+        detail: "Vos plantes sous serre ne boivent que l'eau que vous leur donnez : leurs temps d'arrosage ne profitent jamais de la pluie.",
+      });
+    }
   }
 
   const activeByZone = new Map<number, Plant[]>();
