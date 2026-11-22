@@ -113,7 +113,10 @@ export function GardensScreen() {
         fields={[
           { name: "gardenId", label: "Jardin", type: "select", required: true, options: gardenOpts },
           { name: "name", label: "Nom du profil", type: "text", required: true },
-          { name: "texture", label: "Texture", type: "select", required: true, options: textureOpts },
+          {
+            name: "texture", label: "Texture", type: "select", required: true, options: textureOpts,
+            help: "Deux tests faciles, sans analyse payante :\n\n🫙 LE TEST DU BOCAL — Remplissez un bocal transparent aux 2/3 d'eau, ajoutez une tasse de terre prise à 10 cm de profondeur (sans racines ni cailloux). Secouez énergiquement 2 minutes, laissez reposer 1 à 2 jours. Les couches se forment : sable en bas (dépôt immédiat), limon au milieu (2 h), argile en haut (1 à 2 jours). Mesurez les 3 épaisseurs (photo = plus facile) : plus de 45 % de sable = sol sableux, plus de 30 % d'argile = argileux, milieu dominé par le limon = limoneux.\n\n✋ LE TEST DU BOUDIN — Humectez un peu de terre et roulez-la dans la main : elle ne tient pas = sableux ; un boudin fragile qui casse vite = limoneux ; un boudin long, lisse, qui se plie sans casser = argileux.\n\nEn cas de doute, choisissez « Mixte » : la plupart des jardins sont des mélanges.",
+          },
           {
             name: "ph", label: "pH", type: "number", step: 0.1, hint: "Entre 0 et 14 (7 = neutre)",
             help: "Mesure l'acidité du sol : 7 = neutre, en dessous = acide, au-dessus = calcaire. Un potager aime un pH entre 6 et 7,5. Mesure : kits pH vendus en jardinerie ou analyse de laboratoire (ex. analyses de terre en ligne, 20-30 €). Pas de valeur ? Laissez vide, ce n'est pas bloquant.",

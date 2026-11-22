@@ -409,7 +409,7 @@ details summary {
   line-height: 1;
 }
 
-.help-text { font-size: 0.92rem; line-height: 1.45; }
+.help-text { font-size: 0.92rem; line-height: 1.45; white-space: pre-line; }
 
 /* Note dans les formulaires (associations, remèdes) */
 .form-note {
