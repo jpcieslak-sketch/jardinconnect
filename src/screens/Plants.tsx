@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, daysSince, today, FRENCH_MONTHS, type PlantSpecies } from "../db";
+import { surfaceFor } from "../permaculture";
 import { refOptions } from "../components/EntityList";
-import { ParcelInstallPanel, squareSize } from "./Assistant";
+import { ParcelInstallPanel } from "./Assistant";
 import { Button, Card, EmptyState, Field, Modal, SectionTitle } from "../components/ui";
 
 const NATURAL_REMEDIES: Record<string, string[]> = {
@@ -46,7 +47,7 @@ export function PlantsScreen() {
 
   const [editing, setEditing] = useState<Record<string, unknown> | null>(null);
   const [detailId, setDetailId] = useState<number | null>(null);
-  const [openedZone, setOpenedZone] = useState<number | null>(null);
+  const [selectedZone, setSelectedZone] = useState<number | null>(null);
 
   const speciesById = new Map((species ?? []).map((s) => [s.id!, s]));
   const zoneById = new Map((zones ?? []).map((z) => [z.id!, z]));
@@ -58,55 +59,100 @@ export function PlantsScreen() {
     await db.plants.update(plantId, { lastWateredAt: today() });
   };
 
+
   const activePlants = (plants ?? []).filter((p) => p.status === "pousse" || p.status === "mature");
   const parcelles = (zones ?? []).filter((z) => z.type === "potager" || z.type === "serre");
+  const selectedZoneId = selectedZone !== null ? zoneById.get(selectedZone) ?? null : null;
+  const installedInZone = selectedZoneId ? activePlants.filter((p) => p.zoneId === selectedZoneId.id) : [];
+  const plantedArea = installedInZone.reduce((acc, p) => {
+    const sp = speciesById.get(p.speciesId);
+    return acc + (sp ? surfaceFor(sp, p.quantity > 0 ? p.quantity : 1) ?? 0 : 0);
+  }, 0);
+  const free = selectedZoneId ? (selectedZoneId.surfaceM2 ?? 0) - plantedArea : 0;
+
+  const removePlant = async (plantId: number) => {
+    for (const n of needs ?? []) {
+      if ((n.installedPlantIds ?? []).includes(plantId)) {
+        await db.harvest_needs.update(n.id!, {
+          installedPlantIds: (n.installedPlantIds ?? []).filter((i) => i !== plantId),
+        });
+      }
+    }
+    await db.plants.delete(plantId);
+  };
 
   return (
     <div>
-      <SectionTitle>📐 Mes parcelles : où installer quoi ?</SectionTitle>
-      <Card>
-        <p className="muted">
-          Ouvrez une parcelle (petit carré) : vous retrouvez dessous toutes les récoltes cochées dans
-          Mes objectifs. Cochez ce que vous y mettez — la surface de la parcelle se déduit toute
-          seule, et l'appli vous alerte si deux plantes se gênent (compatibilité, rotation, surface).
-        </p>
-      </Card>
+      <SectionTitle>📏 Mes parcelles : où installer quoi ?</SectionTitle>
       {parcelles.length === 0 ? (
         <EmptyState text="Aucune parcelle potager ou serre. Créez-les dans l'onglet Jardins (avec leur surface)." />
       ) : (
-        <div className="list">
-          {parcelles.map((z) => {
-            const side = squareSize(z.surfaceM2 ?? 10);
-            const open = openedZone === z.id;
-            return (
-              <div key={z.id}>
-                <Card>
-                  <button className="list-row-btn" onClick={() => setOpenedZone(open ? null : z.id!)}>
-                    <span className="zone-square" style={{ width: side, height: side }} title={z.name} />
-                    <div className="list-text">
-                      <strong>{z.name}</strong>
-                      <span className="muted">{z.surfaceM2 ? `${z.surfaceM2} m²` : "surface ?"}{z.sunExposure ? ` · ${z.sunExposure}` : ""}</span>
-                    </div>
-                    <span className="chev">{open ? "⌃" : "›"}</span>
-                  </button>
-                </Card>
-                {open && needs && species && (
-                  <Card>
-                    <ParcelInstallPanel zone={z} needs={needs} speciesAll={species} plants={activePlants} onDone={() => setOpenedZone(null)} />
-                  </Card>
+        <>
+          <Card>
+            <Field label="Choisissez la parcelle">
+              <select
+                value={selectedZone === null ? "" : String(selectedZone)}
+                onChange={(e) => setSelectedZone(e.target.value === "" ? null : Number(e.target.value))}
+              >
+                <option value="">— choisir —</option>
+                {parcelles.map((z) => (
+                  <option key={z.id} value={z.id}>{z.name}{z.surfaceM2 ? ` — ${z.surfaceM2} m²` : ""}</option>
+                ))}
+              </select>
+            </Field>
+          </Card>
+
+          {selectedZoneId && (
+            <>
+              <Card>
+                <strong>📍 {selectedZoneId.name}</strong>
+                <p className="muted">
+                  Surface : <strong>{selectedZoneId.surfaceM2 ?? "?"} m²</strong>
+                  {selectedZoneId.surfaceM2 ? (
+                    <>
+                      {" "}· déjà planté : <strong>{Math.round(plantedArea)} m²</strong>
+                      {" "}· libre : <strong style={free < 0 ? { color: "var(--danger)" } : undefined}>{Math.round(free)} m²</strong>
+                    </>
+                  ) : null}
+                </p>
+                {installedInZone.length > 0 ? (
+                  <div className="list">
+                    {installedInZone.map((p) => {
+                      const sp = speciesById.get(p.speciesId);
+                      return (
+                        <div key={p.id} className="alert-row">
+                          <div>
+                            <strong>{p.nickname ?? sp?.commonName ?? "Plante"}</strong>
+                            <p className="muted">
+                              ×{p.quantity} pied(s) · {sp?.commonName ?? "?"} · planté le {p.plantingDate}
+                            </p>
+                          </div>
+                          <Button variant="small" onClick={() => void removePlant(p.id!)}>
+                            ✕ Retirer
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="muted">Rien d'installé ici pour l'instant : choisissez ci-dessous parmi vos récoltes cochées.</p>
                 )}
-              </div>
-            );
-          })}
-        </div>
+              </Card>
+
+              {needs && species && (
+                <ParcelInstallPanel zone={selectedZoneId} needs={needs} speciesAll={species} plants={activePlants} />
+              )}
+            </>
+          )}
+        </>
       )}
 
       <div className="head-row">
         <SectionTitle>🌿 Mes plantations</SectionTitle>
       </div>
 
-      {(plants ?? []).length === 0 && openedZone === null ? (
-        <EmptyState text="Aucune plantation : ouvrez une parcelle (carré) ci-dessus pour installer vos récoltes cochées." />
+      {(plants ?? []).length === 0 && selectedZone === null ? (
+        <EmptyState text="Aucune plantation : choisissez une parcelle ci-dessus pour installer vos récoltes cochées." />
       ) : (
         <div className="list">
           {(plants ?? []).map((p) => {
