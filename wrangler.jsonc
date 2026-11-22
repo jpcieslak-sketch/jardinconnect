@@ -1,0 +1,8 @@
+{
+  // Configuration de déploiement Cloudflare (Workers + fichiers statiques)
+  "name": "jardinconnect",
+  "compatibility_date": "2025-01-01",
+  "assets": {
+    "directory": "./dist"
+  }
+}
