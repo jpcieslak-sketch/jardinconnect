@@ -147,6 +147,8 @@ export function Home({ onGo }: { onGo: (tab: string) => void }) {
 
   return (
     <div>
+      <div className="home-hero"><span className="home-eyebrow">VOTRE ESPACE POTAGER</span><h2>Un jardin qui vous ressemble 🌱</h2><p>Décrivez votre terrain, choisissez vos légumes, puis organisez vos cultures à votre rythme.</p></div>
+      <div className="home-steps"><strong>Par où commencer ?</strong><div><span>1</span> Configurez votre terrain</div><div><span>2</span> Choisissez vos objectifs</div><div><span>3</span> Organisez vos plantations</div></div>
       <SectionTitle>Votre jardin en un coup d'œil</SectionTitle>
 
       <div className="list">
