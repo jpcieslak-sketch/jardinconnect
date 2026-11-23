@@ -323,6 +323,7 @@ export function ParcelInstallPanel({
     return acc + (chosen > 0 ? surfaceFor(sp, chosen) ?? 0 : 0);
   }, 0);
   const afterFree = free - selectedArea;
+  const previewPlantedArea = plantedArea + selectedArea;
 
   const toggle = (id: number) => {
     const willCheck = !selected.has(id);
@@ -377,8 +378,10 @@ export function ParcelInstallPanel({
         Surface : <strong>{zone.surfaceM2 ?? "?"} m²</strong>
         {zone.surfaceM2 ? (
           <>
-            {" "}· plantée : <strong>{Math.round(plantedArea)} m²</strong>
-            {" "}· libre : <strong style={free < 0 ? { color: "var(--danger)" } : undefined}>{Math.round(free)} m²</strong>
+            {" "}· déjà plantée : <strong>{plantedArea.toFixed(1)} m²</strong>
+            {" "}· sélection en cours : <strong>{selectedArea.toFixed(1)} m²</strong>
+            {" "}· total prévu : <strong>{previewPlantedArea.toFixed(1)} m²</strong>
+            {" "}· restant prévu : <strong style={afterFree < 0 ? { color: "var(--danger)" } : undefined}>{afterFree.toFixed(1)} m²</strong>
           </>
         ) : null}
       </p>
@@ -438,27 +441,6 @@ export function ParcelInstallPanel({
               </div>
             );
           })}
-        </div>
-      )}
-
-      {conflicts.length > 0 && (
-        <div className="note-alert" style={{ marginTop: 10 }}>
-          <p>
-            <strong>⚠️ Attention, problème de compatibilité :</strong>
-          </p>
-          {conflicts.map((c, i) => <p key={i} className="muted">• {c}</p>)}
-          <p className="muted">Ces plantes se gênent (maladies communes, exsudats) : déplacez-les dans des parcelles séparées ou espacez-les au maximum.</p>
-        </div>
-      )}
-
-      {rotation.length > 0 && (
-        <div className="note-alert" style={{ marginTop: 10 }}>
-          <p>
-            <strong>⚠️ Attention, problème au niveau de la rotation :</strong>
-          </p>
-          <p className="muted">
-            La famille {rotation.join(", ")} a déjà été cultivée dans {zone.name} l'an dernier. En permaculture, on ne replante pas la même famille deux années de suite : changez ces plantes de parcelle.
-          </p>
         </div>
       )}
 
