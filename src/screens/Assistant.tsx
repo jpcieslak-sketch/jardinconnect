@@ -642,7 +642,7 @@ function QuickStartForm({ speciesList, onClose }: { speciesList: PlantSpecies[];
                     onChange={(e) => setPick(s.id!, { qty: e.target.value })}
                     placeholder="quantité"
                   />
-                  {hasUnits ? (
+                  {(
                     <select value={mode} onChange={(e) => setPick(s.id!, { mode: e.target.value as NeedMode })}>
                       <option value="unités">{s.unitName ?? "unités"}/an</option>
                       <option value="kg">kg/an</option>
