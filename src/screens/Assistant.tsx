@@ -397,6 +397,21 @@ export function ParcelInstallPanel({
         </p>
       )}
 
+      {selectedNeeds.length > 0 && (
+        <div aria-live="polite" style={{ marginTop: 12 }}>
+          {conflicts.length > 0 && <div className="note-alert">
+            <p><strong>⚠️ Incompatibilité détectée :</strong></p>
+            {conflicts.map((message, i) => <p key={i} className="muted">• {message}</p>)}
+            <p className="muted">Essayez une autre combinaison ou une autre parcelle.</p>
+          </div>}
+          {rotation.length > 0 && <div className="note-alert">
+            <p><strong>⚠️ Rotation à vérifier :</strong> {rotation.join(", ")} déjà cultivée ici l'an dernier.</p>
+          </div>}
+          {zone.surfaceM2 !== undefined && afterFree < 0 && <div className="note-alert">
+            <p><strong>⚠️ Surface insuffisante :</strong> {previewPlantedArea.toFixed(1)} m² prévus pour {zone.surfaceM2} m² disponibles. Réduisez le nombre de pieds ou choisissez une autre parcelle.</p>
+          </div>}
+        </div>
+      )}
       <div className="head-row">
         <SectionTitle>Qu'y installer ?</SectionTitle>
       </div>
