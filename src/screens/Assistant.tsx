@@ -650,8 +650,6 @@ function QuickStartForm({ speciesList, onClose }: { speciesList: PlantSpecies[];
                       <option value="unités">{s.unitName ?? "unités"}/an</option>
                       <option value="kg">kg/an</option>
                     </select>
-                  ) : (
-                    <span className="muted">kg/an</span>
                   )}
                 </div>
               )}
