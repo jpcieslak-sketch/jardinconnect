@@ -5,7 +5,6 @@ import { EntityList, refOptions } from "../components/EntityList";
 const typeOpts = [
   { value: "potager", label: "Potager" },
   { value: "serre", label: "Serre / tunnel" },
-  { value: "verger", label: "Verger" },
   { value: "massif", label: "Massif" },
   { value: "pelouse", label: "Pelouse" },
   { value: "autre", label: "Autre" },
@@ -100,7 +99,7 @@ export function GardensScreen() {
       <EntityList
         table={db.garden_zones}
         title="▦ Parcelles et surfaces"
-        emptyText="Découpez un jardin en parcelles : potager, serre, verger…"
+        emptyText="Découpez un jardin en parcelles : potager, serre…"
         toTitle={(z) => z.name}
         toSubtitle={(z) => `${typeLabels[z.type] ?? z.type}${z.surfaceM2 ? ` · ${z.surfaceM2} m²` : ""}${z.sunExposure ? ` · ${z.sunExposure}` : ""}`}
         fields={[
