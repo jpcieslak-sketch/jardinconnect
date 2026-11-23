@@ -291,7 +291,7 @@ function PlantForm({
         <Field label="Nombre de pieds">
           <input type="number" min={1} step={1} value={String(values.quantity ?? 1)} onChange={(e) => set("quantity", e.target.value)} />
         </Field>
-        )
+        )}
         <Field label="Date de plantation">
           <input type="date" value={String(values.plantingDate ?? today())} onChange={(e) => set("plantingDate", e.target.value)} />
         </Field>
