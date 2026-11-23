@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, FRENCH_MONTHS, type PlantSpecies } from "../db";
 import { Card, EmptyState, SectionTitle } from "../components/ui";
+import { isPotagerSpecies } from "./Assistant";
 
 const CATEGORY_ICONS: Record<PlantSpecies["category"], string> = {
   légume: "🥕",
@@ -39,6 +40,7 @@ export function SpeciesScreen() {
 
   const filtered = useMemo(() => {
     return (species ?? []).filter((s) => {
+      if (!isPotagerSpecies(s) && s.category !== "fleur" && s.category !== "engrais vert") return false;
       const q = search.toLowerCase();
       const matchSearch =
         !q ||
@@ -56,7 +58,7 @@ export function SpeciesScreen() {
 
   return (
     <div>
-      <SectionTitle>📖 Référentiel botanique ({(species ?? []).length} espèces)</SectionTitle>
+      <SectionTitle>📖 Référentiel botanique ({(species ?? []).filter((s) => isPotagerSpecies(s) || s.category === "fleur" || s.category === "engrais vert").length} espèces)</SectionTitle>
       <Card>
         <div className="filters">
           <input
@@ -67,7 +69,7 @@ export function SpeciesScreen() {
           />
           <select value={category} onChange={(e) => setCategory(e.target.value)}>
             <option value="">Toutes catégories</option>
-            {Object.keys(CATEGORY_ICONS).map((c) => (
+            {Object.keys(CATEGORY_ICONS).filter((c) => c !== "arbuste").map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
           </select>
