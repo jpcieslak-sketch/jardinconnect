@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, FRENCH_MONTHS, type PlantSpecies } from "../db";
-import { Card, EmptyState, SectionTitle } from "../components/ui";
+import { Button, Card, EmptyState, SectionTitle } from "../components/ui";
 import { isPotagerSpecies } from "./Assistant";
 
 const CATEGORY_ICONS: Record<PlantSpecies["category"], string> = {
@@ -23,6 +23,37 @@ export function SpeciesScreen() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string>("");
   const [month, setMonth] = useState<string>("");
+  const [showAdd, setShowAdd] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newFamily, setNewFamily] = useState("");
+  const [newSpacing, setNewSpacing] = useState("");
+  const [newYield, setNewYield] = useState("");
+  const [addError, setAddError] = useState("");
+
+  const addSpecies = async () => {
+    const name = newName.trim();
+    if (!name) { setAddError("Indiquez le nom de la plante."); return; }
+    if ((species ?? []).some(s => s.commonName.toLowerCase() === name.toLowerCase())) {
+      setAddError("Cette plante existe déjà."); return;
+    }
+    const spacing = Number(newSpacing);
+    const yieldKg = Number(newYield);
+    if ((newSpacing && spacing <= 0) || (newYield && yieldKg <= 0)) {
+      setAddError("Indiquez des nombres positifs."); return;
+    }
+    await db.plant_species.add({
+      commonName: name, latinName: "", category: "légume",
+      family: newFamily.trim() || "Non renseignée", waterNeedMmPerWeek: 0,
+      sowingMonths: [], underCoverMonths: [], transplantMonths: [], harvestMonths: [],
+      sun: "plein soleil", companionGood: [], companionBad: [],
+      frostSensitive: false,
+      ...(newSpacing ? { spacingCm: spacing } : {}),
+      ...(newYield ? { yieldPerPlantKg: yieldKg } : {}),
+      careAdvice: "Espèce personnelle : renseigner les conseils de culture.",
+    });
+    setNewName(""); setNewFamily(""); setNewSpacing(""); setNewYield("");
+    setAddError(""); setShowAdd(false);
+  };
 
   const climat = (gardens ?? []).find(
     (g) => g.climateType !== undefined || g.winterTempMinC !== undefined ||
@@ -59,6 +90,29 @@ export function SpeciesScreen() {
   return (
     <div>
       <SectionTitle>📖 Référentiel botanique ({(species ?? []).filter((s) => isPotagerSpecies(s) || s.category === "fleur" || s.category === "engrais vert").length} espèces)</SectionTitle>
+      <Card>
+        <div className="head-row">
+          <strong>Une plante manque dans le catalogue ?</strong>
+          <Button variant="small" onClick={() => setShowAdd(v => !v)}>{showAdd ? "Fermer" : "＋ Ajouter une plante"}</Button>
+        </div>
+        {showAdd && <div className="form">
+          <p className="muted">Ajoutez une plante à votre catalogue personnel, puis retrouvez-la dans Objectifs et Cultures. Les conseils et rendements inconnus ne seront pas inventés.</p>
+          <label>Nom de la plante *
+            <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Ex. chou kale violet" />
+          </label>
+          <label>Famille botanique (facultatif)
+            <input value={newFamily} onChange={e => setNewFamily(e.target.value)} placeholder="Ex. Brassicacées" />
+          </label>
+          <label>Espacement en cm (facultatif)
+            <input type="number" min="1" value={newSpacing} onChange={e => setNewSpacing(e.target.value)} />
+          </label>
+          <label>Rendement en kg par pied (facultatif)
+            <input type="number" min="0.01" step="any" value={newYield} onChange={e => setNewYield(e.target.value)} />
+          </label>
+          {addError && <p className="field-hint">{addError}</p>}
+          <Button onClick={() => void addSpecies()}>Enregistrer la plante</Button>
+        </div>}
+      </Card>
       <Card>
         <div className="filters">
           <input
