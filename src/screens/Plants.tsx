@@ -70,17 +70,6 @@ export function PlantsScreen() {
   }, 0);
   const free = selectedZoneId ? (selectedZoneId.surfaceM2 ?? 0) - plantedArea : 0;
 
-  const removePlant = async (plantId: number) => {
-    for (const n of needs ?? []) {
-      if ((n.installedPlantIds ?? []).includes(plantId)) {
-        await db.harvest_needs.update(n.id!, {
-          installedPlantIds: (n.installedPlantIds ?? []).filter((i) => i !== plantId),
-        });
-      }
-    }
-    await db.plants.delete(plantId);
-  };
-
   return (
     <div>
       <div className="cultures-intro">
