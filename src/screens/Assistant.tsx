@@ -5,9 +5,14 @@ import { PlanningContent } from "./Planning";
 import { plantsForNeed, plantsForKg, plantsForUnits, needLabel, surfaceFor, conflictsInParcel, rotationProblems } from "../permaculture";
 import { Button, Card, EmptyState, Field, Modal, SectionTitle } from "../components/ui";
 
+export function isPotagerSpecies(s: PlantSpecies): boolean {
+  if (s.category === "arbuste") return false;
+  if (/pommier|poirier|cerisier|prunier|abricotier|pêcher|pêcher|figuier|cognassier|néflier|noisetier|noyer|châtaignier|amandier|olivier|citronnier|oranger|mandarinier|kiwi|vigne|groseillier|framboisier|mûrier|myrtillier|cassis|sureau|arbre fruitier|arbuste/i.test(s.commonName)) return false;
+  return s.category === "légume" || s.category === "fruit" || s.category === "aromate";
+}
 function installableSpecies(list: PlantSpecies[]): PlantSpecies[] {
   return list
-    .filter((s) => s.category === "légume" || s.category === "fruit" || s.category === "aromate")
+    .filter(isPotagerSpecies)
     .sort((a, b) => a.commonName.localeCompare(b.commonName, "fr"));
 }
 
@@ -52,6 +57,7 @@ function HarvestNeedsView() {
   const zones = useLiveQuery(() => db.garden_zones.toArray());
 
   const [adding, setAdding] = useState(false);
+  const [editingNeed, setEditingNeed] = useState<HarvestNeed | null>(null);
   const [wizard, setWizard] = useState(false);
   const [openedZone, setOpenedZone] = useState<GardenZone | null>(null);
 
@@ -151,7 +157,7 @@ function HarvestNeedsView() {
             if (!sp) return null;
             const count = plantsForNeed(sp, need);
             const surface = count !== null ? surfaceFor(sp, count) : null;
-            const installed = (need.installedPlantIds ?? []).length;
+            const installed = plants.filter((p) => (need.installedPlantIds ?? []).includes(p.id!) && (p.status === "pousse" || p.status === "mature")).reduce((sum, p) => sum + p.quantity, 0);
             return (
               <Card key={need.id}>
                 <div className="list-text">
@@ -172,6 +178,7 @@ function HarvestNeedsView() {
                   {count !== null && installed < count ? " · ouvrez une parcelle (carré) pour installer" : ""}
                 </p>
                 <div className="row-actions">
+                  <Button variant="small" onClick={() => setEditingNeed(need)}>✏️ Modifier</Button>
                   <Button variant="small" onClick={async () => { await db.harvest_needs.delete(need.id!); }}>
                     🗑️
                   </Button>
@@ -222,6 +229,7 @@ function HarvestNeedsView() {
       )}
 
       {adding && <AddNeedForm speciesList={installableSpecies(speciesAll)} onClose={() => setAdding(false)} />}
+      {editingNeed && <AddNeedForm speciesList={installableSpecies(speciesAll)} existing={editingNeed} onClose={() => setEditingNeed(null)} />}
       {wizard && <QuickStartForm speciesList={installableSpecies(speciesAll)} onClose={() => setWizard(false)} />}
       {openedZone && (
         <ParcelModal
@@ -292,7 +300,7 @@ export function ParcelInstallPanel({
   const remainingFor = (n: HarvestNeed) => {
     const sp = speciesById.get(n.speciesId);
     const count = sp ? plantsForNeed(sp, n) : null;
-    const installed = (n.installedPlantIds ?? []).length;
+    const installed = plants.filter((p) => (n.installedPlantIds ?? []).includes(p.id!) && (p.status === "pousse" || p.status === "mature")).reduce((sum, p) => sum + p.quantity, 0);
     return count !== null ? Math.max(0, count - installed) : 0;
   };
   const chosenFor = (n: HarvestNeed) => {
@@ -397,7 +405,7 @@ export function ParcelInstallPanel({
             const sp = speciesById.get(need.speciesId);
             if (!sp) return null;
             const count = plantsForNeed(sp, need);
-            const installed = (need.installedPlantIds ?? []).length;
+            const installed = plants.filter((p) => (need.installedPlantIds ?? []).includes(p.id!) && (p.status === "pousse" || p.status === "mature")).reduce((sum, p) => sum + p.quantity, 0);
             const remaining = count !== null ? Math.max(0, count - installed) : 0;
             const area = remaining > 0 ? surfaceFor(sp, remaining) : 0;
             const covered = installed >= (count ?? 0);
@@ -481,14 +489,13 @@ export function ParcelInstallPanel({
   );
 }
 
-function AddNeedForm({ speciesList, onClose }: { speciesList: PlantSpecies[]; onClose: () => void }) {
-  const [speciesId, setSpeciesId] = useState("");
-  const [mode, setMode] = useState<NeedMode>("kg");
-  const [target, setTarget] = useState("");
+function AddNeedForm({ speciesList, existing, onClose }: { speciesList: PlantSpecies[]; existing?: HarvestNeed; onClose: () => void }) {
+  const [speciesId, setSpeciesId] = useState(existing ? String(existing.speciesId) : "");
+  const [mode, setMode] = useState<NeedMode>(existing?.targetUnitsPerYear !== undefined ? "unités" : "kg");
+  const [target, setTarget] = useState(existing ? String(existing.targetUnitsPerYear ?? existing.targetKgPerYear ?? "") : "");
   const [error, setError] = useState("");
 
   const species = speciesList.find((s) => s.id === Number(speciesId));
-  const unitsAvailable = Boolean(species?.yieldPerPlantUnits);
 
   const submit = async () => {
     if (!species) {
@@ -500,12 +507,20 @@ function AddNeedForm({ speciesList, onClose }: { speciesList: PlantSpecies[]; on
       return;
     }
     const qty = Number(target);
-    await db.harvest_needs.add({
-      speciesId: species.id!,
-      ...(mode === "unités" ? { targetUnitsPerYear: qty } : { targetKgPerYear: qty }),
-      installedPlantIds: [],
-      createdAt: new Date().toISOString(),
-    });
+    if (existing?.id !== undefined) {
+      await db.harvest_needs.update(existing.id, {
+        speciesId: species.id!,
+        targetUnitsPerYear: mode === "unités" ? qty : undefined,
+        targetKgPerYear: mode === "kg" ? qty : undefined,
+      });
+    } else {
+      await db.harvest_needs.add({
+        speciesId: species.id!,
+        ...(mode === "unités" ? { targetUnitsPerYear: qty } : { targetKgPerYear: qty }),
+        installedPlantIds: [],
+        createdAt: new Date().toISOString(),
+      });
+    }
     onClose();
   };
 
@@ -529,10 +544,10 @@ function AddNeedForm({ speciesList, onClose }: { speciesList: PlantSpecies[]; on
   })();
 
   return (
-    <Modal title="Ce que je veux récolter" onClose={onClose}>
+    <Modal title={existing ? "Modifier mon besoin" : "Ce que je veux récolter"} onClose={onClose}>
       <div className="form">
         <Field label="Espèce *" help="Exemples : 8 kg de tomates nourrissent 4 personnes, 20 têtes de salade, 10 bottes de radis. Vous pourrez ajuster à tout moment.">
-          <select value={speciesId} onChange={(e) => {
+          <select disabled={Boolean(existing)} value={speciesId} onChange={(e) => {
             setSpeciesId(e.target.value);
             const sp = speciesList.find((s) => s.id === Number(e.target.value));
             setMode(sp?.yieldPerPlantUnits ? "unités" : "kg");
@@ -546,7 +561,7 @@ function AddNeedForm({ speciesList, onClose }: { speciesList: PlantSpecies[]; on
             ))}
           </select>
         </Field>
-        {unitsAvailable && (
+        {(
           <Field label="Je compte en…" help="Les salades, radis, choux et racines se comptent plus naturellement en unités (têtes, bottes, pièces). Tout le reste se compte en kilos récoltés.">
             <div className="row-actions">
               <button className={`seg-btn ${mode === "kg" ? "seg-active" : ""}`} style={{ flex: 1 }} onClick={() => setMode("kg")}>kg/an</button>
@@ -565,7 +580,7 @@ function AddNeedForm({ speciesList, onClose }: { speciesList: PlantSpecies[]; on
       </div>
       <div className="form-actions">
         <Button variant="ghost" onClick={onClose}>Annuler</Button>
-        <Button onClick={submit}>Créer</Button>
+        <Button onClick={submit}>{existing ? "Enregistrer" : "Créer"}</Button>
       </div>
     </Modal>
   );
@@ -609,8 +624,7 @@ function QuickStartForm({ speciesList, onClose }: { speciesList: PlantSpecies[];
       <div className="form wizard-list">
         {speciesList.map((s) => {
           const p = pickOf(s.id);
-          const hasUnits = Boolean(s.yieldPerPlantUnits);
-          const mode = hasUnits ? p.mode : "kg";
+          const mode = p.mode;
           return (
             <div key={s.id} className="wizard-row">
               <label className="wizard-check">
@@ -633,7 +647,7 @@ function QuickStartForm({ speciesList, onClose }: { speciesList: PlantSpecies[];
                   />
                   {hasUnits ? (
                     <select value={mode} onChange={(e) => setPick(s.id!, { mode: e.target.value as NeedMode })}>
-                      <option value="unités">{s.unitName}/an</option>
+                      <option value="unités">{s.unitName ?? "unités"}/an</option>
                       <option value="kg">kg/an</option>
                     </select>
                   ) : (
