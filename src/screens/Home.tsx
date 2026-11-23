@@ -6,6 +6,7 @@ import { plantsForNeed, surfaceFor, weeklyWaterNeedL, num } from "../permacultur
 import { tipOfTheDay } from "../tips";
 import { refreshWeather } from "../weather";
 import { dailyTasks, type GardenTask } from "../tasks";
+import { RITUALS } from "./Planning";
 import { Badge, Button, Card, EmptyState, SectionTitle } from "../components/ui";
 
 type ReminderAction = "done" | "useless" | "later";
@@ -30,6 +31,7 @@ function saveReminderState(state: Record<string, { action: ReminderAction; until
 
 export function Home({ onGo }: { onGo: (tab: string) => void }) {
   const tip = tipOfTheDay();
+  const seasonMonth = new Date().getMonth() + 1;
   const [alerts, setAlerts] = useState<Alert[] | null>(null);
   const [weatherState, setWeatherState] = useState<"idle" | "loading" | "ok" | "error">("idle");
   const [weatherMsg, setWeatherMsg] = useState("");
@@ -264,7 +266,8 @@ export function Home({ onGo }: { onGo: (tab: string) => void }) {
       </Card>
 
       
-      <SectionTitle>✅ À faire au jardin</SectionTitle>
+      <SectionTitle>✅ À faire dans mon jardin</SectionTitle>
+      <p className="muted">Uniquement les rappels liés à vos plantations, récoltes prévues et alertes personnelles.</p>
       {tasks === null || alerts === null ? (
         <EmptyState text="Chargement…" />
       ) : visibleTasks.length === 0 && visibleAlerts.length === 0 ? (
@@ -344,6 +347,18 @@ export function Home({ onGo }: { onGo: (tab: string) => void }) {
           🔔 Notifications activées : vous serez prévenu une fois par jour des principales tâches.
         </p>
       )}
+
+      <SectionTitle>🍂 Conseils généraux de saison</SectionTitle>
+      <Card>
+        <p className="muted">Des idées pour le potager en cette saison, même si ces cultures ne font pas partie de vos objectifs. À adapter au climat local et à la météo.</p>
+        {(RITUALS[seasonMonth] ?? []).map((advice, index) => (
+          <p key={index}>🌱 {advice}</p>
+        ))}
+        {(speciesAll ?? []).filter((s) => s.category === "engrais vert" && s.sowingMonths.includes(seasonMonth)).slice(0, 3).map((s) => (
+          <p key={s.id}>💡 Vous pourriez semer {s.commonName.toLowerCase()} sur une parcelle disponible.</p>
+        ))}
+        <p className="muted">Ces suggestions ne sont pas des tâches obligatoires et n'ajoutent aucune culture à votre jardin.</p>
+      </Card>
 
       <SectionTitle>Raccourcis</SectionTitle>
       <div className="stats">
