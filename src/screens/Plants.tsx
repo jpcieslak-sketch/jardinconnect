@@ -3,7 +3,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db, daysSince, today, FRENCH_MONTHS, type PlantSpecies } from "../db";
 import { surfaceFor } from "../permaculture";
 import { refOptions } from "../components/EntityList";
-import { ParcelInstallPanel } from "./Assistant";
+import { ParcelInstallPanel, isPotagerSpecies } from "./Assistant";
 import { Button, Card, EmptyState, Field, Modal, SectionTitle } from "../components/ui";
 
 const NATURAL_REMEDIES: Record<string, string[]> = {
@@ -185,7 +185,7 @@ export function PlantsScreen() {
         <PlantForm
           row={editing}
           zoneOpts={refOptions(zones)}
-          speciesOpts={refOptions(species, "commonName")}
+          speciesOpts={refOptions((species ?? []).filter(isPotagerSpecies), "commonName")}
           speciesList={species ?? []}
           onClose={() => setEditing(null)}
         />
@@ -218,6 +218,8 @@ function PlantForm({
 }) {
   const [values, setValues] = useState<Record<string, unknown>>({ ...row });
   const isNew = row.id === undefined;
+  const [quantityMode, setQuantityMode] = useState<"pieds" | "kg">("pieds");
+  const [kgInstalled, setKgInstalled] = useState("");
   const set = (name: string, v: unknown) => setValues((prev) => ({ ...prev, [name]: v }));
   const speciesMap = new Map(speciesList.map((s) => [s.id!, s]));
   const selectedSpecies = (values.speciesId === "" || values.speciesId === undefined)
@@ -227,6 +229,13 @@ function PlantForm({
   const submit = async () => {
     if (!values.zoneId || !values.speciesId) return;
     const clean = { ...values };
+    if (quantityMode === "kg") {
+      const kg = Number(kgInstalled);
+      if (!selectedSpecies?.yieldPerPlantKg || !Number.isFinite(kg) || kg <= 0) return;
+      clean.quantity = Math.ceil(kg / selectedSpecies.yieldPerPlantKg);
+    }
+    if (!Number.isFinite(Number(clean.quantity)) || Number(clean.quantity) <= 0) return;
+    clean.quantity = Math.floor(Number(clean.quantity));
     for (const k of ["quantity", "wateringIntervalDays"]) {
       if (clean[k] === "" || clean[k] === undefined) delete clean[k];
     }
@@ -267,9 +276,22 @@ function PlantForm({
         <Field label="Surnom" hint="ex. « Tomates cerises du mur »">
           <input type="text" value={String(values.nickname ?? "")} onChange={(e) => set("nickname", e.target.value)} />
         </Field>
-        <Field label="Nombre de pieds" help="Le nombre de plants individuels (ex. 6 = 6 pieds de tomates). En permaculture, on sème souvent en poquets : 2-3 graines par trou puis on garde le plant le plus vigoureux.">
-          <input type="number" min={1} value={String(values.quantity ?? 1)} onChange={(e) => set("quantity", e.target.value)} />
+        <Field label="Quantité installée" help="Choisissez le nombre de pieds réellement plantés, ou une quantité en kg à convertir en nombre estimé de pieds selon le rendement de cette espèce. Vous pouvez ajouter la même espèce sur plusieurs parcelles.">
+          <select value={quantityMode} onChange={(e) => setQuantityMode(e.target.value as "pieds" | "kg")}>
+            <option value="pieds">Nombre de pieds</option>
+            {selectedSpecies?.yieldPerPlantKg ? <option value="kg">Kilogrammes prévus (estimation)</option> : null}
+          </select>
         </Field>
+        {quantityMode === "kg" && selectedSpecies?.yieldPerPlantKg ? (
+          <Field label="Récolte prévue (kg)">
+            <input type="number" min={0.1} step={0.1} value={kgInstalled} onChange={(e) => setKgInstalled(e.target.value)} />
+            <p className="muted">≈ {Math.ceil((Number(kgInstalled) || 0) / selectedSpecies.yieldPerPlantKg)} pieds, sur la base de {selectedSpecies.yieldPerPlantKg} kg/pied. Il s’agit d’une estimation, pas d’une récolte pesée.</p>
+          </Field>
+        ) : (
+        <Field label="Nombre de pieds">
+          <input type="number" min={1} step={1} value={String(values.quantity ?? 1)} onChange={(e) => set("quantity", e.target.value)} />
+        </Field>
+        )
         <Field label="Date de plantation">
           <input type="date" value={String(values.plantingDate ?? today())} onChange={(e) => set("plantingDate", e.target.value)} />
         </Field>
