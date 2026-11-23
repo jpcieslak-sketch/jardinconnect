@@ -83,103 +83,99 @@ export function PlantsScreen() {
 
   return (
     <div>
-      <SectionTitle>📏 Mes parcelles : où installer quoi ?</SectionTitle>
-      {parcelles.length === 0 ? (
-        <EmptyState text="Aucune parcelle potager ou serre. Créez-les dans l'onglet Jardins (avec leur surface)." />
-      ) : (
-        <>
-          <Card>
-            <Field label="Choisissez la parcelle">
-              <select
-                value={selectedZone === null ? "" : String(selectedZone)}
-                onChange={(e) => setSelectedZone(e.target.value === "" ? null : Number(e.target.value))}
-              >
-                <option value="">— choisir —</option>
-                {parcelles.map((z) => (
-                  <option key={z.id} value={z.id}>{z.name}{z.surfaceM2 ? ` — ${z.surfaceM2} m²` : ""}</option>
-                ))}
-              </select>
-            </Field>
-          </Card>
-
-          {selectedZoneId && (
-            <>
-              <Card>
-                <strong>📍 {selectedZoneId.name}</strong>
-                <p className="muted">
-                  Surface : <strong>{selectedZoneId.surfaceM2 ?? "?"} m²</strong>
-                  {selectedZoneId.surfaceM2 ? (
-                    <>
-                      {" "}· déjà planté : <strong>{Math.round(plantedArea)} m²</strong>
-                      {" "}· libre : <strong style={free < 0 ? { color: "var(--danger)" } : undefined}>{Math.round(free)} m²</strong>
-                    </>
-                  ) : null}
-                </p>
-                {installedInZone.length > 0 ? (
-                  <div className="list">
-                    {installedInZone.map((p) => {
-                      const sp = speciesById.get(p.speciesId);
-                      return (
-                        <div key={p.id} className="alert-row">
-                          <div>
-                            <strong>{p.nickname ?? sp?.commonName ?? "Plante"}</strong>
-                            <p className="muted">
-                              ×{p.quantity} pied(s) · {sp?.commonName ?? "?"} · planté le {p.plantingDate}
-                            </p>
-                          </div>
-                          <Button variant="small" onClick={() => void removePlant(p.id!)}>
-                            ✕ Retirer
-                          </Button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="muted">Rien d'installé ici pour l'instant : choisissez ci-dessous parmi vos récoltes cochées.</p>
-                )}
-              </Card>
-
-              {needs && species && (
-                <ParcelInstallPanel zone={selectedZoneId} needs={needs} speciesAll={species} plants={activePlants} />
-              )}
-            </>
-          )}
-        </>
-      )}
-
-      <div className="head-row">
-        <SectionTitle>🌿 Mes plantations</SectionTitle>
+      <div className="cultures-intro">
+        <span className="cultures-eyebrow">MON POTAGER</span>
+        <h2>Mes cultures 🌿</h2>
+        <p>Choisissez une parcelle pour voir sa place disponible, puis retrouvez ses plantations en un coup d'œil.</p>
       </div>
 
-      {(plants ?? []).length === 0 && selectedZone === null ? (
-        <EmptyState text="Aucune plantation : choisissez une parcelle ci-dessus pour installer vos récoltes cochées." />
+      <div className="head-row">
+        <SectionTitle>Mes parcelles</SectionTitle>
+        {selectedZone !== null && <button type="button" className="cultures-reset" onClick={() => setSelectedZone(null)}>Tout voir</button>}
+      </div>
+      {parcelles.length === 0 ? (
+        <EmptyState text="Créez votre première parcelle dans Terrain pour commencer." />
       ) : (
-        <div className="list">
-          {(plants ?? []).map((p) => {
-            const sp = speciesById.get(p.speciesId);
-            const zone = zoneById.get(p.zoneId);
-            const since = daysSince(p.lastWateredAt);
+        <div className="parcel-grid">
+          {parcelles.map((z) => {
+            const area = activePlants.filter(p => p.zoneId === z.id).reduce((sum, p) =>
+              sum + (speciesById.has(p.speciesId) ? surfaceFor(speciesById.get(p.speciesId)!, p.quantity) ?? 0 : 0), 0);
+            const surface = z.surfaceM2;
+            const known = typeof surface === "number" && surface > 0;
+            const remaining = known ? surface - area : null;
+            const occupancy = known ? Math.min(100, Math.max(0, area / surface * 100)) : 0;
+            const count = activePlants.filter(p => p.zoneId === z.id).length;
             return (
-              <Card key={p.id}>
-                <button className="list-row-btn" onClick={() => setDetailId(p.id!)}>
-                  <div className="list-text">
-                    <strong>{p.nickname ?? sp?.commonName ?? "Plante"}</strong>
-                    <span className="muted">
-                      {sp?.commonName ?? "?"} · {zone?.name ?? "?"} · {p.status} · plante le {p.plantingDate}
-                      {since !== null ? ` · arrosé il y a ${since} j` : " · jamais arrosé"}
-                    </span>
-                  </div>
-                  <span className="chev">›</span>
-                </button>
-                <div className="row-actions">
-                  <Button variant="small" onClick={() => waterNow(p.id!)}>💧 Arrosé aujourd'hui</Button>
-                  <Button variant="small" onClick={() => setEditing({ ...p })}>Modifier</Button>
-                </div>
-              </Card>
+              <button type="button" key={z.id} className={`parcel-tile ${selectedZone === z.id ? "parcel-tile-active" : ""}`} onClick={() => setSelectedZone(z.id!)} aria-pressed={selectedZone === z.id}>
+                <span className="parcel-tile-top"><span className="parcel-tile-icon">{z.type === "serre" ? "🏡" : "🌱"}</span><span className="parcel-tile-name">{z.name}</span></span>
+                <span className="parcel-tile-number">{remaining === null ? "—" : `${remaining.toFixed(1)} m²`}</span>
+                <span className="parcel-tile-sub">{remaining === null ? "Surface à renseigner" : remaining < 0 ? "Surface dépassée" : "encore disponibles"}</span>
+                <span className="parcel-progress"><span style={{ width: `${occupancy}%`, background: remaining !== null && remaining < 0 ? "var(--danger)" : undefined }} /></span>
+                <span className="parcel-tile-footer">{known ? `${area.toFixed(1)} / ${surface} m² occupés` : "Surface inconnue"} · {count} culture{count > 1 ? "s" : ""}</span>
+              </button>
             );
           })}
         </div>
       )}
+
+      {selectedZoneId && (
+        <div className="parcel-workspace">
+          <div className="head-row"><SectionTitle>📍 {selectedZoneId.name}</SectionTitle></div>
+          <p className="muted">Les surfaces sont estimées à partir de l'espacement des plantes. Elles se mettent à jour après chaque installation.</p>
+          <div className="parcel-metrics">
+            <div><span>Plantée</span><strong>{plantedArea.toFixed(1)} <small>m²</small></strong></div>
+            <div><span>Libre</span><strong className={free < 0 ? "surface-negative" : ""}>{selectedZoneId.surfaceM2 === undefined ? "—" : free.toFixed(1)} <small>m²</small></strong></div>
+            <div><span>Surface totale</span><strong>{selectedZoneId.surfaceM2 ?? "—"} <small>m²</small></strong></div>
+          </div>
+          <details className="parcel-install">
+            <summary>＋ Installer des plantes dans cette parcelle</summary>
+            {needs && species && (
+              <ParcelInstallPanel zone={selectedZoneId} needs={needs} speciesAll={species} plants={activePlants} />
+            )}
+          </details>
+        </div>
+      )}
+
+      <div className="head-row">
+        <SectionTitle>🌿 {selectedZoneId ? `Cultures · ${selectedZoneId.name}` : "Toutes mes cultures"}</SectionTitle>
+        <span className="cultures-count">{selectedZoneId ? (plants ?? []).filter(p => p.zoneId === selectedZoneId.id).length : (plants ?? []).length}</span>
+      </div>
+      {(() => {
+        const visiblePlants = selectedZoneId ? (plants ?? []).filter(p => p.zoneId === selectedZoneId.id) : (plants ?? []);
+        return visiblePlants.length === 0 ? (
+          <EmptyState text={selectedZoneId ? "Aucune culture dans cette parcelle. Utilisez « Installer des plantes » ci-dessus." : "Pas encore de plantations. Choisissez une parcelle pour commencer."} />
+        ) : (
+          <div className="cultures-grid">
+            {visiblePlants.map((p) => {
+              const sp = speciesById.get(p.speciesId);
+              const zone = zoneById.get(p.zoneId);
+              const since = daysSince(p.lastWateredAt);
+              const plantArea = sp ? surfaceFor(sp, p.quantity) : null;
+              return (
+                <article key={p.id} className="culture-tile">
+                  <button type="button" className="culture-tile-main" onClick={() => setDetailId(p.id!)} aria-label={`Voir ${p.nickname ?? sp?.commonName ?? "la plante"}`}>
+                    <span className="culture-icon">{sp?.category === "aromate" ? "🌿" : sp?.category === "fruit" ? "🍓" : sp?.category === "fleur" ? "🌼" : "🥬"}</span>
+                    <span className="culture-tile-info">
+                      <strong>{p.nickname ?? sp?.commonName ?? "Plante"}</strong>
+                      <span>{zone?.name ?? "Parcelle inconnue"}</span>
+                    </span>
+                    <span className="culture-chevron">›</span>
+                  </button>
+                  <div className="culture-tile-stats">
+                    <span><b>{p.quantity}</b> pied{p.quantity > 1 ? "s" : ""}</span>
+                    {plantArea !== null && <span>≈ {plantArea.toFixed(1)} m²</span>}
+                    <span className={`culture-status culture-status-${p.status === "pousse" || p.status === "mature" ? "active" : "past"}`}>{p.status}</span>
+                  </div>
+                  <div className="culture-tile-actions">
+                    <button type="button" onClick={() => void waterNow(p.id!)}>💧 {since === 0 ? "Arrosée" : "J'ai arrosé"}</button>
+                    <button type="button" onClick={() => setEditing({ ...p })}>✎ Modifier</button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       {editing && (
         <PlantForm
