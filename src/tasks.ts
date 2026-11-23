@@ -1,5 +1,4 @@
 import { db, daysSince } from "./db";
-import { RITUALS } from "./screens/Planning";
 import { plantsForNeed, needLabel } from "./permaculture";
 
 export interface GardenTask {
@@ -55,7 +54,7 @@ export async function dailyTasks(): Promise<GardenTask[]> {
     const sp = speciesById.get(need.speciesId);
     if (!sp) continue;
     const count = plantsForNeed(sp, need);
-    const installed = (need.installedPlantIds ?? []).length;
+    const installed = plantsAll.filter((p) => p.speciesId === need.speciesId && (p.status === "pousse" || p.status === "mature")).reduce((total, p) => total + p.quantity, 0);
     if (count !== null && installed >= count) continue;
     const undercover = sp.underCoverMonths.includes(month);
     const direct = sp.sowingMonths.includes(month);
@@ -70,18 +69,6 @@ export async function dailyTasks(): Promise<GardenTask[]> {
       title: `Période idéale : ${sp.commonName}`,
       detail: `${how} (${needLabel(sp, need)} visés). C'est le bon moment selon le calendrier.`,
     });
-  }
-
-  for (const s of speciesAll.filter((s) => s.category === "engrais vert" && s.sowingMonths.includes(month))) {
-    tasks.push({
-      key: `green-manure-${s.id}`,
-      title: `Penser à semer l'engrais vert : ${s.commonName}`,
-      detail: "Sur les parcelles vides ou en fin de culture : il nourrit le sol et prépare la prochaine rotation.",
-    });
-  }
-
-  for (const r of RITUALS[month] ?? []) {
-    tasks.push({ key: `ritual-${month}-${r}`, title: r, detail: "Tâche du mois en cours (calendrier permaculture)." });
   }
 
   return tasks;
